@@ -1,4 +1,4 @@
-# RetrievalLab v2 — Vector × Reasoning RAG Comparison Prototype
+# RetrievalLab v2 — Vector-Based RAG × Reasoning-Based Retrieval Comparison Prototype
 
 A NotebookLM-style, source-grounded question-answering prototype that answers the
 same question with two different retrieval paradigms, **sequentially and in
