@@ -1,0 +1,33 @@
+{
+  "questions": [
+    {
+      "id": "coating-thickness",
+      "question": "What is the minimum required coating thickness for the metal facing?",
+      "question_de": "Wie groß ist die geforderte Mindestbeschichtungsdicke der metallischen Deckschicht?",
+      "type": "numeric",
+      "gold_pages": { "EN 14509.pdf": [42, 43] },
+      "notes": "Single-fact numeric lookup; answer lives in one clause."
+    },
+    {
+      "id": "shear-test-method",
+      "question": "Which test method is specified for determining the shear strength of the core?",
+      "type": "definition",
+      "gold_pages": { "EN 14509.pdf": [88] },
+      "notes": "Clause reference question — good for find_clause (Step 9)."
+    },
+    {
+      "id": "compare-fire-classes",
+      "question": "How do the two standards differ in how they classify reaction-to-fire performance?",
+      "type": "cross-document",
+      "gold_pages": { "EN 14509.pdf": [51, 52], "DIN 4102.pdf": [10, 11] },
+      "notes": "Multi-hop across two documents; both gold sets must be hit for full recall."
+    },
+    {
+      "id": "no-answer-control",
+      "question": "What is the warranty period offered by the panel manufacturer?",
+      "type": "unanswerable",
+      "gold_pages": {},
+      "notes": "Control: not in the sources. Correct behaviour is an explicit 'not found'."
+    }
+  ]
+}
