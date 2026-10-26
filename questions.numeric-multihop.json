@@ -1,0 +1,508 @@
+{
+  "questions": [
+    {
+      "id": "hole-clearance-m20",
+      "question": "What nominal hole clearance applies to a normal round hole for an M20 bolt?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          50
+        ]
+      },
+      "notes": "answer: 2 mm. | source: Tabelle 11 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "slip-factor-class-a",
+      "question": "Which slip factor may be assumed for a class A friction surface?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          70
+        ]
+      },
+      "notes": "answer: 0,50. | source: Reibflaechenklassen | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "bolt-preload-formula",
+      "question": "How is the nominal minimum preloading force of a preloaded bolt assembly calculated?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          71
+        ]
+      },
+      "notes": "answer: Fp,C = 0,7 x fub x As, with fub the nominal ultimate strength and As the tensile stress area. | source: Gleichung (1) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "bolt-preload-table",
+      "question": "Where are the nominal values of the minimum preloading force Fp,C tabulated, and what governs their magnitude?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          71,
+          72
+        ]
+      },
+      "notes": "answer: In Table 18, as a function of bolt diameter and strength grade; the clause defines Fp,C = 0,7 fub As. This preload level applies to all slip-resistant and other preloaded connections unless a lower level is explicitly defined, in which case the assemblies, tightening method and parameters, and inspection requirements must also be specified. | source: Tabelle 18 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "weld-inspection-sampling",
+      "question": "How is the scope of weld inspection determined - which variables must the sampling cover, and what testing extent applies to a fully penetrated straight butt weld?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          99,
+          232
+        ]
+      },
+      "notes": "answer: The sampling must cover, as broadly as possible, the joint type, the steel grade of the base materials, the welding equipment and the welders' method; the Table 24 percentage applies to ongoing production over one year (p.99). For a fully penetrated straight butt weld the supplementary extent in Table L.2 runs from 0% RT/UT in WIC1 up to 10% RT and 100% UT in WIC5 (p.232). | source: Prueflose / Tabelle 24 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "castellated-beam-tolerance",
+      "question": "For a castellated beam with holes of inscribed nominal radius r >= 200 mm, what supplementary tolerance applies?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          128
+        ]
+      },
+      "notes": "answer: Delta = r/100 and Delta <= 5 mm; no requirement applies under the basic tolerances. | source: Tabelle B.1 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "hole-group-spacing-tol",
+      "question": "What deviation is permitted for the distance between hole-group centres in the general case?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          143
+        ]
+      },
+      "notes": "answer: +/-5 mm as basic tolerance and +/-2 mm as supplementary tolerance for class 1. | source: Tabelle B.8 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "weld-prep-gap-hollow",
+      "question": "For butt welds at chord-to-brace joints of hollow sections, what root gap and root face does the standard illustrate?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          198
+        ]
+      },
+      "notes": "answer: A gap b of 2 mm to 4 mm and a root face c of 1 mm to 2 mm, with the detail applying for angles of 60 to 90 degrees. | source: Bild E.4 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "slip-test-coating-thickness",
+      "question": "How is the slip factor of a coated friction surface established, and what does the test procedure require of the coating on the specimens?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          210,
+          213
+        ]
+      },
+      "notes": "answer: The slip factor of a coated friction surface is established by testing standardized specimen assemblies to Annex G: five specimens (four loaded, one creep), slip force read from the force-slip curve, characteristic value as the 5% quantile. The coating on the specimen contact faces must be applied as for the actual structure and be at least 25% thicker than the nominal thickness specified for use. | source: Anhang G (p.210-216) + p.213 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "wic-supplementary-testing",
+      "question": "For a fully penetrated straight butt weld, what extent of supplementary radiographic and ultrasonic testing does the weld inspection class table require?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          232
+        ]
+      },
+      "notes": "answer: 10 % radiographic and 100 % ultrasonic testing, with 100 % magnetic-particle or penetrant testing. | source: Tabelle L.2 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "cf-gamma-values",
+      "question": "Which partial factors does EN 1993-1-3 recommend unless the National Annex specifies otherwise?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          46
+        ]
+      },
+      "notes": "answer: gammaM0 = 1,00, gammaM1 = 1,00 and gammaM2 = 1,25. | source: Abschnitt 4(3) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cf-tcor-min",
+      "question": "Down to which core thickness are the design rules for cold-formed members and sheeting applicable?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          52
+        ]
+      },
+      "notes": "answer: tcor >= 0,35 mm; thinner material only if the resistance is determined by testing. | source: Anwendungsbereich | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cf-instability-modes",
+      "question": "Which instability modes does the standard distinguish for cold-formed members, and which simplified section properties may be used for corrugated sheeting?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          69,
+          92
+        ]
+      },
+      "notes": "answer: The standard distinguishes plate buckling (Plattenbeulen), distortional buckling (Forminstabilitaet) and global buckling (globale Instabilitaet, incl. flexural, torsional and flexural-torsional). For corrugated/profiled sheeting under uniformly distributed load, shell buckling (Schalenbeulen) need not be considered and the gross-section bending resistance may be used within the stated geometric limits (p.92). | source: Abschnitt 7 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cf-corrugated-simplified",
+      "question": "Which simplified expressions may be used for the second moment of area and section modulus of corrugated sheeting?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          93
+        ]
+      },
+      "notes": "answer: Iy = 0,13 t h^2 and Wy = 0,26 t h, provided the cross-section satisfies the stated conditions. | source: Gleichungen (7.82)/(7.83) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cf-fastener-gamma",
+      "question": "Which partial factor value applies to the resistance of mechanical fasteners in cold-formed steel construction?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          46
+        ]
+      },
+      "notes": "answer: gammaM2 = 1,25 applies to the resistance of mechanical fasteners, as recommended in the partial-factor clause (p.46). | source: 10.x -> 4(3) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cf-fastener-off-centre",
+      "question": "A fastener sits off-centre in the flange of sheeting with a flange width of 200 mm. What reduction factor applies?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          131
+        ]
+      },
+      "notes": "answer: 0,5 if the eccentricity is up to bu/4 and 0,7 between bu/4 and bu/2, for 150 mm < bu <= 265 mm. | source: Tabelle 10.1 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "cf-opening-cover-plate",
+      "question": "Under which conditions may framing be omitted for an opening in the span region of trapezoidal sheeting, and how must the opening be reinforced?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1993-1-3_2025-04-00_DE_3529535.pdf": [
+          168
+        ]
+      },
+      "notes": "answer: For openings from 125 x 125 mm to 300 x 300 mm under uniformly distributed load only, reinforced by a cover plate of t >= 1,5 tsheet >= 1,13 mm. | source: 11.x (4) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ifbs-site-access",
+      "question": "What vehicle load must the site access be able to carry before assembly work starts?",
+      "type": "numeric",
+      "gold_pages": {
+        "IFBS 8.01_Montagerichtlinien - 04-2009.pdf": [
+          37
+        ]
+      },
+      "notes": "answer: Standard articulated and drawbar vehicles up to 400 kN (40 t) permissible total weight, plus the corresponding mobile cranes. | source: 5.1 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ifbs-opening-reinforcement",
+      "question": "When an opening is cut into trapezoidal sheeting, what reinforcement plate and what minimum opening dimension does the guideline require?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "IFBS 8.01_Montagerichtlinien - 04-2009.pdf": [
+          61
+        ]
+      },
+      "notes": "answer: A corrosion-protected top-side plate of at least 600 mm x b and 1,25 mm thickness; the cut perpendicular to the span must be at least 1,0 m, with one opening per field. | source: Oeffnungen | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ifbs-edge-distance",
+      "question": "What minimum edge distance does the guideline require for fastener holes?",
+      "type": "numeric",
+      "gold_pages": {
+        "IFBS 8.01_Montagerichtlinien - 04-2009.pdf": [
+          71
+        ]
+      },
+      "notes": "answer: At least twice the hole diameter and not less than 20 mm. | source: Befestigung | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ifbs-parapet-slope",
+      "question": "What minimum slope must a parapet covering have towards the roof surface?",
+      "type": "numeric",
+      "gold_pages": {
+        "IFBS 8.01_Montagerichtlinien - 04-2009.pdf": [
+          78
+        ]
+      },
+      "notes": "answer: At least 5 degrees. | source: Attika | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ifbs-plastic-drilling",
+      "question": "What rule of thumb does the guideline give for the drill hole diameter in plastic sheeting to allow for thermal expansion?",
+      "type": "numeric",
+      "gold_pages": {
+        "IFBS 8.01_Montagerichtlinien - 04-2009.pdf": [
+          140
+        ]
+      },
+      "notes": "answer: Per metre of panel length the hole is drilled 1 mm larger than the screw shank diameter. | source: Kunststoffprofiltafeln | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "sandwich-external-face",
+      "question": "Which strength value is referenced for the weather-exposed external face layer?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          19
+        ]
+      },
+      "notes": "answer: The referenced 0,2% proof strength depends on the facing: 220 N/mm2 for stainless steel facings, 180 N/mm2 for the weather-exposed external steel facing (only grades R240 and R290 meet this), and 140 N/mm2 for internal facings. | source: 5.1.2 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "sandwich-test-span",
+      "question": "For a sandwich element with an overall depth of 80 mm, which indicative test span does the standard suggest to obtain bending failure?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          60
+        ]
+      },
+      "notes": "answer: 5,0 m; if shear failure occurs instead, the span is increased in steps of 1,0 m. | source: Tabelle A.1 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "sandwich-test-fixings",
+      "question": "In the specified test set-up, at which spacing must the securing screws or blind rivets be arranged?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          103
+        ]
+      },
+      "notes": "answer: At 400 mm spacing, at 90 degrees to each other, with fixing centres at 50, 450, 850, 1250 and 1450 mm from the base of the specimen. | source: Anhang C (Bild C.1) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "sandwich-flatness-measure",
+      "question": "What flatness tolerance applies to a sandwich element, and over which distance and at what distance from the edges must it be measured?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          25,
+          120
+        ]
+      },
+      "notes": "answer: Flatness deviation limits: 0,6 mm at L = 200 mm, 1,0 mm at L = 400 mm and 1,5 mm at L > 700 mm. Measured in both longitudinal and transverse directions over at least L = 200 mm, with the point at least 100 mm from the longitudinal edge and 200 mm from the end, using a straight bar and a precision gauge (p.120). | source: D.2.2 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ec3-class4",
+      "question": "When must a compression part be assigned to cross-section class 4, and which class must the compression flange have in the region of a plastic hinge?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1993-1-1_2025-04-00_DE_3334578.pdf": [
+          56,
+          57
+        ]
+      },
+      "notes": "answer: A compression part is class 4 when it does not satisfy class 3, i.e. local buckling occurs before the yield strength is reached (p.56). In the region of a plastic hinge the compression flange must be class 1, since only class 1 sections can form plastic hinges with sufficient rotation capacity (p.57). | source: Querschnittsklassifizierung | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ec3-gamma-values",
+      "question": "Which partial factors does EN 1993-1-1 recommend for buildings?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-1_2025-04-00_DE_3334578.pdf": [
+          61
+        ]
+      },
+      "notes": "answer: gammaM0 = 1,00, gammaM1 = 1,00 and gammaM2 = 1,25, unless the National Annex gives other values. | source: 8.1 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "ec3-ltb-check",
+      "question": "Which verification must be satisfied for a laterally unrestrained beam bent about its major axis?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1993-1-1_2025-04-00_DE_3334578.pdf": [
+          87
+        ]
+      },
+      "notes": "answer: MEd / Mb,Rd <= 1,0, the lateral-torsional buckling check. | source: 8.3.2.1, Gleichung (8.78) | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "min-thickness-sheeting",
+      "question": "Where does EN 1090-4 specify minimum nominal sheet thicknesses, and what values apply to edge closures and supports?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-4_2020-06-00_DE_3145895.pdf": [
+          23,
+          24
+        ]
+      },
+      "notes": "answer: Clause 5.5.1 gives the minimum nominal sheet thicknesses; they must match the execution documents and may not fall below the tabulated values. Related minima: tN >= 0,75 mm for edge closures and tN >= 0,88 mm for supports (5.5.2). | source: 5.5.1 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "cut-face-hardness",
+      "question": "For cold-formed components, under what condition is punching permitted, and what hardness limit applies to the cut faces of higher-strength steel?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-4_2020-06-00_DE_3145895.pdf": [
+          28,
+          29
+        ]
+      },
+      "notes": "answer: Punching is permitted only if the nominal thickness does not exceed the hole diameter (or, for non-circular holes, its smallest dimension); punching without reaming is allowed up to 4 mm for all classes, or up to 8 mm for EXC1-EXC3, otherwise punch undersize and ream/drill. For unalloyed steel with yield strength > 460 N/mm2 the cut-face hardness must not exceed 450 HV10 (p.28-29). | source: 6.x Schneiden | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "folded-member-tolerance",
+      "question": "For a folded or bent component, what deviation is permitted on the inner width between bends?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-4_2020-06-00_DE_3145895.pdf": [
+          76
+        ]
+      },
+      "notes": "answer: For the inner width A between two bends, Table D.2 gives the basic tolerance -Delta = A/50 (minus sign only, no positive deviation) for t >= 3 mm; thinner or longer members follow the tabulated +/-3 to +/-5 mm cases. | source: Tabelle D.2 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "coil-coating-zinc",
+      "question": "In the coil-coating examples, what zinc coating mass and approximate thickness are recommended for the substrate?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_1090-4_2020-06-00_DE_3145895.pdf": [
+          85
+        ]
+      },
+      "notes": "answer: Z-275 g/m2 (or equivalent ZA-255 or AZ-150), corresponding to a nominal coating thickness of about 20 um; ZM-120 is a different, thinner class and is not the ~20 um example. | source: Tabelle E.5 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "itt-assessment-table",
+      "question": "Which table sets out the scope, assessment method and conformity criteria for initial type testing, and how are dimensional tolerances assessed there?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_1090-1_2012-02-00_DE_1855463.pdf": [
+          20
+        ]
+      },
+      "notes": "answer: Table 1; dimensional and shape tolerances are assessed by inspection and testing according to EN 1090-2 or EN 1090-3. | source: Tabelle 1 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "paint-zinc-rich-primer",
+      "question": "How much metallic zinc must a zinc-rich primer contain in the dry film to be classified as Zn(R)?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN EN_ISO_12944-5_2020-03-00_DE_3121207.pdf": [
+          17
+        ]
+      },
+      "notes": "answer: A zinc-rich primer Zn(R) must contain at least 80 % zinc dust by mass in the dry film; primers are grouped by pigment type, and Zn(R) primers provide cathodic protection to the steel. | source: 7.1.2 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "paint-c4-system-ndft",
+      "question": "In the example systems for corrosivity category C4, what total nominal dry film thickness is given for the first tabulated system?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN EN_ISO_12944-5_2020-03-00_DE_3121207.pdf": [
+          30
+        ]
+      },
+      "notes": "answer: 160 micrometres total NDFT, built from a primer of 60 to 160 micrometres plus one or two subsequent coats. | source: Tabelle C.4 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "gal-repair-thickness",
+      "question": "What coating thickness must a repaired area of a galvanized coating reach?",
+      "type": "numeric",
+      "gold_pages": {
+        "DIN_EN_ISO_1461_2022-12-00_DE_3388189.pdf": [
+          21
+        ]
+      },
+      "notes": "answer: At least 100 micrometres mean thickness, unless otherwise agreed. | source: Ausbesserung | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "gal-repair-cathodic",
+      "question": "What coating thickness must a repaired galvanized area reach, and why does the standard prefer a repair material with a high metallic zinc content?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_EN_ISO_1461_2022-12-00_DE_3388189.pdf": [
+          21,
+          28
+        ]
+      },
+      "notes": "answer: A repaired area must reach at least 100 um mean thickness (p.21). A zinc-rich repair material with high metallic zinc content is preferred because an electrically conductive coating bonded to the base metal provides cathodic protection, which increases with the metallic zinc content (p.28). | source: Anhang C.1 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "tol-kinds-of-limits",
+      "question": "Which kinds of limits does DIN 18202 distinguish, and in which table are the limits for flatness deviations given?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_18202_2019-07-00_DE_3061349.pdf": [
+          10,
+          13
+        ]
+      },
+      "notes": "answer: Limit deviations for dimensions, limits for angular deviations, limits for flatness deviations and limits for deviations from the alignment of columns. | source: 5.1 | content: prose",
+      "content_type": "prose"
+    },
+    {
+      "id": "tol-flatness-table",
+      "question": "Which table specifies the limits for flatness deviations and how are those limits expressed?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_18202_2019-07-00_DE_3061349.pdf": [
+          12,
+          13
+        ]
+      },
+      "notes": "answer: Table 3; the limits are given as offset measurements depending on the spacing of the measuring points. | source: 5.4 + Tabelle 3 | content: table",
+      "content_type": "table"
+    },
+    {
+      "id": "tol-measuring-points",
+      "question": "What limit deviation applies to a plan dimension of 10 m, and where on the component must that dimension be measured?",
+      "type": "multi-hop",
+      "gold_pages": {
+        "DIN_18202_2019-07-00_DE_3061349.pdf": [
+          11,
+          17
+        ]
+      },
+      "notes": "answer: A plan dimension of 10 m has a limit deviation of +/-20 mm (Tabelle 1, over 6 up to 15 m). Such dimensions are measured at the points defined in section 6: at the edges about 10 cm from the corners and at the component centre on its surface (p.11 + p.17). | source: 6.4.1 | content: prose",
+      "content_type": "prose"
+    }
+  ]
+}

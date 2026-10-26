@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetrievalLab — Vector × Reasoning RAG Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F3F0; --card:#FFFFFF; --ink:#17201B; --muted:#5F6B63;
+  --line:#D8DDD8; --line-soft:#E6EAE6;
+  --vec:#2352C9; --vec-soft:#EAF0FF;   /* A: vector — cobalt */
+  --rsn:#1A6B4A; --rsn-soft:#E9F4EE;   /* B: reasoning — spruce green */
+  --warn:#8A5A00; --err:#A3261C; --ok:#1A6B4A;
+  --r:10px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{background:var(--paper); color:var(--ink); font-family:'Instrument Sans',system-ui,sans-serif; font-size:15px; line-height:1.55}
+.mono{font-family:'IBM Plex Mono',monospace}
+button{font:inherit; cursor:pointer}
+input,select,textarea{font:inherit; color:var(--ink)}
+::selection{background:#CFE0FF}
+
+header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; padding:18px 26px 14px; border-bottom:1px solid var(--line)}
+.eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase}
+h1{font-family:'Instrument Serif',serif; font-weight:400; font-size:30px; letter-spacing:.01em}
+h1 .x{color:var(--muted); font-style:italic; padding:0 2px}
+.lamp{width:9px; height:9px; border-radius:50%; background:#B9C2BB; display:inline-block; margin-left:auto; align-self:center}
+.lamp.busy{background:var(--warn); animation:pulse 1.1s infinite}
+.lamp.ok{background:var(--ok)} .lamp.err{background:var(--err)}
+@keyframes pulse{50%{opacity:.35}}
+#lampLabel{font-size:12.5px; color:var(--muted); align-self:center}
+
+#backendWarn{margin:14px 26px 0; padding:12px 16px; border:1px solid #E4C978; background:#FBF3DC; border-radius:var(--r); font-size:13.5px; color:#6B4E00; display:none}
+
+.wrap{display:grid; grid-template-columns:330px 1fr; gap:22px; padding:20px 26px 40px; align-items:start}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}}
+
+aside{display:flex; flex-direction:column; gap:14px; position:sticky; top:16px}
+@media(max-width:1080px){aside{position:static}}
+.box{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px}
+.box h2{font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; gap:8px; align-items:center}
+.box h2 .step{width:18px; height:18px; border-radius:50%; border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; color:var(--ink)}
+label{display:block; font-size:12.5px; color:var(--muted); margin:8px 0 4px}
+.field{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:#FCFCFB}
+.field:focus{outline:2px solid #B9CBF2; outline-offset:1px; border-color:var(--vec)}
+.row{display:flex; gap:8px; align-items:center}
+.hint{font-size:11.5px; color:var(--muted); margin-top:6px}
+.btn{border:1px solid var(--ink); background:var(--ink); color:#fff; padding:8px 14px; border-radius:7px; font-weight:500; font-size:13.5px}
+.btn:hover{background:#2A362F}
+.btn.ghost{background:transparent; color:var(--ink)}
+.btn.ghost:hover{background:#EDEFEC}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn.small{padding:5px 10px; font-size:12.5px}
+
+.tree-row{border:1px solid var(--line-soft); border-radius:7px; padding:7px 9px; margin-bottom:7px; background:#FBFCFA}
+.tree-row.bad{border-color:#E4C978; background:#FBF7EC}
+.tree-row .tr-name{font-size:12.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tree-row .tr-meta{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); margin:3px 0 5px}
+.tree-row .tr-flag{color:var(--warn); font-size:11px; margin-bottom:5px}
+.tree-row .tr-ok{color:var(--ok); font-size:11px}
+.tree-row .tr-err{color:var(--err); font-size:11px; margin-top:6px; word-break:break-word}
+.tree-row .tr-actions{display:flex; gap:10px; margin-top:6px}
+
+/* tree view inside the source drawer */
+.tv{font-size:12.5px; line-height:1.5}
+.tv ul{list-style:none; margin:0; padding-left:14px; border-left:1px dotted var(--line)}
+.tv > ul{padding-left:0; border-left:none}
+.tv li{margin:3px 0}
+.tv .nid{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-right:5px}
+.tv .ntitle{font-weight:500}
+.tv .npages{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--vec); cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; margin-left:5px}
+.tv .nsum{display:block; color:var(--muted); font-size:11.5px; margin-left:2px}
+.drawer-back{background:none; border:none; color:var(--vec); font-size:12px; cursor:pointer; padding:0; margin-bottom:8px}
+.drawer-back:hover{text-decoration:underline}
+.cfg-group{border:1px solid var(--line-soft); border-radius:8px; padding:8px 10px 10px; margin-bottom:10px}
+.cfg-legend{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--vec); font-weight:500; margin-bottom:2px}
+.cfg-legend span{color:var(--muted); text-transform:none; letter-spacing:0; font-weight:400}
+.cfg-legend.cfg-index{color:var(--rsn)}
+.stale{border:1px solid #E4C978; background:#FBF3DC; border-radius:8px; padding:9px 11px; font-size:12px; color:#6B4E00; margin-bottom:10px}
+.stale b{display:block; margin-bottom:2px}
+.stale #staleDiffs{font-family:'IBM Plex Mono',monospace; font-size:11px}
+.cfg-dirty .field{border-color:var(--warn)}
+.kv{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:3px 0}
+.kv .k{color:var(--muted)}
+.kv .v{font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px}
+.badge{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:1px 7px; border-radius:4px}
+.badge.ok{background:var(--rsn-soft); color:var(--ok)}
+.badge.miss{background:#FBEDEB; color:var(--err)}
+
+#docList{list-style:none; margin-top:10px; display:flex; flex-direction:column; gap:6px}
+#docList li{font-size:12.5px; border:1px solid var(--line-soft); border-radius:7px; padding:6px 9px; display:flex; justify-content:space-between; gap:8px; background:#FBFCFA}
+#docList .meta{color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; white-space:nowrap}
+#idxStatus{margin-top:8px; font-size:12px; color:var(--muted)}
+#idxStatus.ready{color:var(--ok)}
+#idxStatus.err{color:var(--err)}
+.buildbar{height:6px; border-radius:4px; background:var(--line-soft); overflow:hidden; margin-top:8px; border:1px solid var(--line-soft); display:none}
+.buildbar.show{display:block}
+.buildbar>i{display:block; height:100%; width:0%; background:var(--vec); transition:width .25s}
+.buildbar.err>i{background:var(--err)}
+.buildbar.done>i{background:var(--ok)}
+
+main{display:flex; flex-direction:column; gap:18px; min-width:0}
+.askbox{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px}
+#question{width:100%; min-height:64px; resize:vertical; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#FCFCFB}
+#question:focus{outline:2px solid #B9CBF2; outline-offset:1px}
+.ask-actions{display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap}
+.protocol{font-size:12px; color:var(--muted)}
+.protocol b{color:var(--ink); font-weight:600}
+
+.rail{display:flex; height:7px; border-radius:4px; overflow:hidden; margin-top:12px; border:1px solid var(--line-soft)}
+.rail>div{flex:1; background:var(--line-soft); position:relative}
+.rail>div>i{position:absolute; inset:0; width:0%; display:block; transition:width .3s}
+#railA>i{background:var(--vec)} #railB>i{background:var(--rsn)}
+.rail>div.running>i{width:100%; opacity:.5; background-image:linear-gradient(90deg,transparent 0 40%,rgba(255,255,255,.55) 50%,transparent 60% 100%); background-size:200% 100%; animation:scan 1.2s linear infinite}
+.rail>div.done>i{width:100%; opacity:1; animation:none}
+.rail>div.err>i{width:100%; background:var(--err); opacity:.8; animation:none}
+@keyframes scan{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.rail>div.running>i{animation:none} .lamp.busy{animation:none}}
+.rail-labels{display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); margin-top:4px}
+
+.results{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+@media(max-width:1280px){.results{grid-template-columns:1fr}}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; min-width:0}
+.panel .spine{height:4px}
+.panel.vec .spine{background:var(--vec)} .panel.rsn .spine{background:var(--rsn)}
+.panel-h{display:flex; align-items:baseline; gap:10px; padding:12px 16px 4px}
+.panel-h .tag{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; padding:2px 8px; border-radius:4px; font-weight:500}
+.panel.vec .tag{background:var(--vec-soft); color:var(--vec)}
+.panel.rsn .tag{background:var(--rsn-soft); color:var(--rsn)}
+.panel-h .name{font-family:'Instrument Serif',serif; font-size:20px}
+.panel-h .state{margin-left:auto; font-size:12px; color:var(--muted)}
+.panel-body{padding:10px 16px 14px; overflow:auto; max-height:520px}
+.answer{font-size:14.5px}
+.answer sup.cit{color:var(--vec); font-weight:600; font-size:11px}
+.answer code{background:#F0F2EF; border-radius:4px; padding:1px 4px; font-family:'IBM Plex Mono',monospace; font-size:12.5px}
+.placeholder{color:var(--muted); font-size:13.5px; padding:8px 0 16px}
+.errbox{border:1px solid #E7B6B1; background:#FBEDEB; color:var(--err); border-radius:8px; padding:10px 12px; font-size:13px; white-space:pre-wrap; word-break:break-word}
+
+details.sub{margin-top:12px; border-top:1px dashed var(--line); padding-top:10px}
+details.sub summary{cursor:pointer; font-size:12.5px; color:var(--muted); font-weight:500}
+.cites{list-style:none; margin-top:8px; display:flex; flex-direction:column; gap:6px}
+.cites li{font-size:12.5px; border:1px solid var(--line-soft); border-left:3px solid var(--vec); border-radius:6px; padding:7px 10px; background:#FBFCFA}
+.cites .src{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); display:block; margin-bottom:3px}
+.trace{list-style:none; margin-top:8px; display:flex; flex-direction:column; gap:5px; counter-reset:t}
+.trace li{font-size:12.5px; padding:6px 10px 6px 34px; position:relative; border:1px solid var(--line-soft); border-radius:6px; background:#FBFCFA; counter-increment:t}
+.trace li::before{content:counter(t); position:absolute; left:9px; top:7px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--rsn)}
+.trace .tool{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--rsn); font-weight:500}
+.trace .thought{color:var(--muted); font-style:italic}
+.trace .obs{color:var(--muted)}
+.verdict-bar{grid-column:1/-1; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 2px}
+.verdict{font-size:13px}
+.win-a{color:var(--vec)} .win-b{color:var(--rsn)} .win-tie{color:var(--muted)}
+.verdict .win-a,.verdict .win-b,.verdict .win-tie{font-weight:600}
+.verdict .why{color:var(--muted); font-style:italic}
+.verdict .jmeta{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted)}
+.metrics{border-top:1px solid var(--line); padding:8px 16px; display:flex; gap:14px; flex-wrap:wrap; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted); background:#FAFBF9}
+.metrics b{color:var(--ink); font-weight:500}
+
+.logbox{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px}
+.logbox .top{display:flex; align-items:center; gap:10px}
+.logbox h2{font-family:'Instrument Serif',serif; font-size:19px; font-weight:400}
+.logbox .top .btn{margin-left:auto}
+table{width:100%; border-collapse:collapse; margin-top:10px; font-size:12.5px}
+th{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-align:left; font-weight:500}
+th,td{padding:6px 8px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+td.q{max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+td.num{font-family:'IBM Plex Mono',monospace; font-size:11.5px; white-space:nowrap}
+.empty{color:var(--muted); font-size:13px; margin-top:8px}
+
+.cit-link{cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px}
+.answer .cit-link{color:var(--vec); font-weight:600; font-size:11px}
+.pcite{cursor:pointer; color:var(--rsn); text-decoration:underline dotted; text-underline-offset:2px; font-weight:500}
+.drawer{position:fixed; top:0; right:0; width:min(460px,92vw); height:100vh; background:var(--card); border-left:1px solid var(--line); box-shadow:-8px 0 24px rgba(0,0,0,.08); z-index:50; display:flex; flex-direction:column}
+/* an author `display` beats the UA's [hidden]{display:none}, so state it explicitly */
+.drawer[hidden], .drawer-scrim[hidden]{display:none}
+.drawer-head{display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line)}
+.drawer-title{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); font-weight:500; flex:1}
+.drawer-body{flex:1; overflow:auto; padding:16px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.6; white-space:pre-wrap; word-break:break-word; color:var(--ink)}
+.drawer-body.as-html{white-space:normal; font-family:'Instrument Sans',system-ui,sans-serif}
+.drawer-scrim{position:fixed; inset:0; background:rgba(20,28,24,.28); z-index:49}
+.trace li.live{animation:tracein .3s ease}
+@keyframes tracein{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+
+.qadd{margin-top:12px; border-top:1px solid var(--line-soft); padding-top:12px}
+.qadd-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.qadd-row #qGold{flex:1; min-width:220px}
+.qadd-hint{font-size:11.5px; color:var(--muted); margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.qtype{font-family:'IBM Plex Mono',monospace; font-size:10px; padding:1px 6px; border-radius:4px; background:#EEF0EC; color:var(--muted); white-space:nowrap}
+.qgold{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--rsn)}
+.qgold.none{color:var(--muted)}
+.qrow-actions{display:flex; gap:6px; white-space:nowrap}
+.batchbar{margin-top:12px; border-top:1px solid var(--line-soft); padding-top:12px}
+.batch-label{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--rsn); font-weight:500}
+label.inline{display:inline; margin:0; font-size:12px}
+.batchbar .buildbar{margin-top:10px}
+.batchbar .buildbar>i{background:var(--rsn)}
+
+.metrics-summary{display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 10px; font-size:12.5px; color:var(--muted)}
+.metrics-summary b{color:var(--ink); font-family:'IBM Plex Mono',monospace}
+.mtable-wrap{overflow-x:auto}
+table.mtable{width:100%; border-collapse:collapse; font-size:12px; min-width:640px}
+table.mtable th, table.mtable td{padding:6px 9px; border-bottom:1px solid var(--line-soft); text-align:right; white-space:nowrap}
+table.mtable th:first-child, table.mtable td:first-child{text-align:left}
+table.mtable thead th{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+table.mtable tr.overall{background:#F7F8F6; font-weight:500}
+table.mtable td.win{color:var(--ok); font-weight:600}
+table.mtable .sub{color:var(--muted); font-size:10px}
+.col-a{border-left:2px solid var(--vec-soft)} .col-b{border-left:2px solid var(--rsn-soft)}
+.mtype{font-family:'IBM Plex Mono',monospace; font-size:10.5px}
+.std{color:var(--muted); font-size:10px}
+/* clickable drill-down count */
+table.mtable td.ncell{cursor:pointer; color:var(--vec); text-decoration:underline dotted; text-underline-offset:2px}
+table.mtable td.ncell:hover{color:var(--ink); background:#F1F5F2}
+/* per-question detail popup */
+.modal-scrim{position:fixed; inset:0; background:rgba(20,28,24,.34); z-index:60}
+.modal-scrim[hidden]{display:none}
+.modal{position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:61;
+  width:min(1000px,96vw); max-height:88vh; display:flex; flex-direction:column;
+  background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 16px 48px rgba(0,0,0,.22)}
+.modal[hidden]{display:none}
+.modal-head{display:flex; align-items:center; gap:10px; padding:13px 16px; border-bottom:1px solid var(--line)}
+.modal-title{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--ink); font-weight:500; flex:1}
+.modal-body{overflow:auto; padding:6px 14px 14px}
+.badge-ct{font-family:'IBM Plex Mono',monospace; font-size:9.5px; padding:1px 6px; border-radius:9px; text-transform:uppercase; letter-spacing:.04em}
+.badge-ct.table{background:#EAF2FB; color:#2C5A86} .badge-ct.prose{background:#F0EFE8; color:#6B6448}
+/* beat `table.mtable td{white-space:nowrap}` so long questions wrap in-cell */
+table.mtable td.qcell{white-space:normal; word-break:break-word; max-width:360px; min-width:230px; line-height:1.35}
+.qcell .qid{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); display:block}
+
+.small-sel{padding:5px 8px; font-size:12px}
+.heat-doc{margin:12px 0 4px}
+.heat-doc .heat-name{font-size:12.5px; font-weight:500; margin-bottom:4px; display:flex; justify-content:space-between; gap:10px}
+.heat-doc .heat-name .meta{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted)}
+.heat-svg-wrap{overflow-x:auto; border:1px solid var(--line-soft); border-radius:6px; background:#FCFCFB; padding:2px 4px}
+.heat-svg{height:auto; display:block}
+.heat-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:11.5px; color:var(--muted); align-items:center}
+.heat-legend[hidden]{display:none}
+.heat-legend .sw{display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-2px; margin-right:5px}
+.heat-legend .stat{font-family:'IBM Plex Mono',monospace; font-size:11px}
+.linkbtn{border:none; background:none; color:var(--vec); font-size:12px; cursor:pointer; padding:2px 4px}
+.linkbtn:hover{text-decoration:underline}
+.linkbtn.del{color:var(--err)}
+footer{padding:0 26px 30px; font-size:11.5px; color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">Thesis Prototype · Sequential Protocol · A→B Isolated</div>
+    <h1>RetrievalLab <span class="x">—</span> Vector <span class="x">×</span> Reasoning</h1>
+  </div>
+  <span class="lamp" id="lamp"></span><span id="lampLabel">connecting…</span>
+</header>
+
+<div id="backendWarn">
+  <b>Backend not reachable.</b> Start it from the project folder with
+  <span class="mono">uvicorn app.main:app --reload</span> and open
+  <span class="mono">http://127.0.0.1:8000</span>. Also make sure your <span class="mono">.env</span> contains
+  <span class="mono">OPENAI_API_KEY</span> and <span class="mono">PINECONE_API_KEY</span>.
+</div>
+
+<div class="wrap">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside>
+    <section class="box">
+      <h2><span class="step">1</span> Backend</h2>
+      <div class="kv"><span class="k">LLM model</span><span class="v" id="stModel">—</span></div>
+      <div class="kv"><span class="k">Embedding model</span><span class="v" id="stEmb">—</span></div>
+      <div class="kv"><span class="k">Pinecone index</span><span class="v" id="stPine">—</span></div>
+      <div class="kv"><span class="k">OpenAI key</span><span class="v" id="stKeyO">—</span></div>
+      <div class="kv"><span class="k">Pinecone key</span><span class="v" id="stKeyP">—</span></div>
+      <p class="hint">Configured server-side in <span class="mono">.env</span> — restart the backend after changing it.</p>
+    </section>
+
+    <section class="box">
+      <h2><span class="step">2</span> Sources</h2>
+      <input type="file" id="fileInput" accept=".pdf,.txt,.md" multiple style="display:none">
+      <div class="row">
+        <button class="btn ghost" id="uploadBtn">Upload PDF / TXT / MD</button>
+        <button class="btn ghost small" id="clearDocs" title="Remove all sources">Clear</button>
+      </div>
+      <div id="ingestStatus" class="hint"></div>
+      <ul id="docList"></ul>
+    </section>
+
+    <section class="box">
+      <h2><span class="step">3</span> Indexes</h2>
+      <p class="hint" style="margin-top:0">Builds both: Pinecone vectors (A) and PageIndex-style trees (B). The first run downloads the embedding model — it can take a few minutes.</p>
+      <button class="btn" id="buildIndex" disabled>Build indexes</button>
+      <div id="idxStatus">Waiting — upload sources first.</div>
+      <div class="buildbar" id="buildBar"><i></i></div>
+    </section>
+
+    <section class="box" id="treeBox" hidden>
+      <h2><span class="step">🌲</span> Tree quality</h2>
+      <div id="treeAudit"></div>
+      <p class="hint">Degenerate trees (few nodes over many pages) make pipeline B read coarse ranges. Rebuild with the LLM structurer to fix.</p>
+    </section>
+
+    <section class="box" id="configBox">
+      <h2><span class="step">⚙</span> Configuration</h2>
+
+      <div id="staleWarn" class="stale" hidden>
+        <b>This condition is not built yet.</b>
+        <span id="staleDiffs"></span>
+      </div>
+      <div id="condNote" class="stale" style="border-color:#C9D8C2;background:#F1F6EE;color:#3B5B33" hidden>
+        <b>Condition <span id="condNs" class="mono"></span></b>
+        <span id="condList"></span>
+      </div>
+
+      <div class="cfg-group">
+        <div class="cfg-legend">Query-time <span>· applies to the next query</span></div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="cfgModel">Generator model</label>
+            <input class="field mono" id="cfgModel" type="text" spellcheck="false">
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="cfgEffort">reasoning_effort</label>
+            <select class="field" id="cfgEffort">
+              <option value="minimal">minimal</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label for="cfgSeed">seed <span style="font-size:10px">(blank = off)</span></label>
+            <input class="field mono" id="cfgSeed" type="number" placeholder="none">
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="topK">top-k (Vector)</label>
+            <input class="field" id="topK" type="number" min="1" max="10" value="5">
+          </div>
+          <div style="flex:1">
+            <label for="maxSteps">max steps (Reasoning)</label>
+            <input class="field" id="maxSteps" type="number" min="2" max="12" value="8">
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-group">
+        <div class="cfg-legend cfg-index">Index-time <span>· changing these needs a rebuild</span></div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="cfgChunk">chunk_size</label>
+            <input class="field" id="cfgChunk" type="number" min="200" max="4000" step="50">
+          </div>
+          <div style="flex:1">
+            <label for="cfgOverlap">chunk_overlap</label>
+            <input class="field" id="cfgOverlap" type="number" min="0" max="1000" step="10">
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="cfgEmb">Embedding model</label>
+            <select class="field mono" id="cfgEmb" title="Switching is non-destructive: each model builds its own index/namespace and both stay queryable"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ask-actions" style="margin-top:12px">
+        <button class="btn small" id="saveConfig">Apply configuration</button>
+        <button class="btn ghost small" id="resetConfig" title="Reload server values">Reset</button>
+        <span class="hint" id="cfgStatus" style="margin:0"></span>
+      </div>
+      <p class="hint">The step cap bounds cost: every step is one LLM call. Query-time changes take effect immediately; index-time changes require <b>Build indexes</b>. Every run records its full config snapshot in the log.</p>
+    </section>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main>
+    <section class="askbox">
+      <label for="question" style="margin-top:0">Research question <span style="color:var(--muted)">(answers follow the question's language)</span></label>
+      <textarea id="question" placeholder="e.g. Where do the methods of the two uploaded papers contradict each other?"></textarea>
+      <div class="ask-actions">
+        <button class="btn" id="askBtn" disabled>Run query</button>
+        <label class="inline" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer" title="Stream pipeline B's reasoning trace live"><input type="checkbox" id="liveTrace" checked> live trace</label>
+        <span class="hint" id="askHint" style="margin:0; color:var(--warn); font-weight:500"></span>
+        <span class="protocol">Protocol: <b>A (Vector) answers first</b>, then <b>B (Reasoning) starts from scratch</b>. B <b>never sees</b> A's answer or retrieved passages.</span>
+      </div>
+      <div class="rail">
+        <div id="railA"><i></i></div>
+        <div id="railB"><i></i></div>
+      </div>
+      <div class="rail-labels"><span>A · vector similarity (Pinecone)</span><span>B · agentic reasoning (PageIndex tree)</span></div>
+    </section>
+
+    <section class="results">
+      <!-- A: VECTOR -->
+      <article class="panel vec">
+        <div class="spine"></div>
+        <div class="panel-h">
+          <span class="tag">A</span><span class="name">Vector RAG</span>
+          <span class="state" id="stateA">idle</span>
+        </div>
+        <div class="panel-body">
+          <div id="bodyA"><p class="placeholder">Question → BGE-M3 embedding → Pinecone top-k → single grounded LLM call with [n] citations.</p></div>
+          <details class="sub" id="citeWrapA" hidden>
+            <summary>Retrieved passages (citations)</summary>
+            <ul class="cites" id="citesA"></ul>
+          </details>
+        </div>
+        <div class="metrics" id="metA">⏱ — · ⇢ — in · ⇠ — out · — call</div>
+      </article>
+
+      <!-- B: REASONING -->
+      <article class="panel rsn">
+        <div class="spine"></div>
+        <div class="panel-h">
+          <span class="tag">B</span><span class="name">Reasoning-Based</span>
+          <span class="state" id="stateB">idle</span>
+        </div>
+        <div class="panel-body">
+          <div id="bodyB"><p class="placeholder">A LangGraph agent navigates a PageIndex-style tree of each document — reads the map, opens nodes, searches keywords — looping until the evidence suffices. Lexical tools only; it <i>never touches</i> the vector index.</p></div>
+          <details class="sub" id="traceWrap" hidden open>
+            <summary>Reasoning trace (tool calls)</summary>
+            <ol class="trace" id="traceB"></ol>
+          </details>
+        </div>
+        <div class="metrics" id="metB">⏱ — · ⇢ — in · ⇠ — out · — calls · — tools</div>
+      </article>
+      <div class="verdict-bar">
+        <button class="btn ghost small" id="judgeBtn" disabled title="Blind, randomized-order LLM judgement of A vs B">Blind-judge A vs B</button>
+        <button class="btn ghost small" id="exportCase" disabled title="Export this question, both answers, evidence and trace as a standalone HTML case report">Export case report</button>
+        <span id="verdict" class="verdict"></span>
+      </div>
+    </section>
+
+    <section class="logbox" id="heatBox">
+      <div class="top">
+        <h2>Evidence heatmap <span style="font-size:12px;color:var(--muted)">· page-level, A vs B</span></h2>
+        <select class="field small-sel" id="heatSource" style="margin-left:auto;max-width:280px" title="Which run to visualise"></select>
+        <button class="btn ghost small" id="dlHeat" style="margin-left:8px" disabled>Export SVG</button>
+      </div>
+      <div id="heatWrap"><p class="empty">Run a query (or pick a logged run) to see which pages each paradigm touched. <b>Lane A</b> = pages retrieved by vector RAG · <b>lane B</b> = pages the agent read · <span class="mono">◇</span> = gold pages.</p></div>
+      <div id="heatLegend" class="heat-legend" hidden></div>
+    </section>
+
+    <section class="logbox" id="qsetBox">
+      <div class="top">
+        <h2>Question set <span style="font-size:12px;color:var(--muted)">· gold-page labels</span></h2>
+        <span class="hint" id="qsetStatus" style="margin:0 0 0 auto"></span>
+        <button class="btn ghost small" id="importQuestions" style="margin-left:10px" title="Bulk-load a questions.json file ({questions:[...]})">Import JSON</button>
+        <input type="file" id="importQuestionsFile" accept=".json,application/json" hidden>
+        <button class="btn ghost small" id="dlQuestions" style="margin-left:8px">Download JSON</button>
+      </div>
+      <div id="importMsg" class="hint" style="display:none;margin:0 0 8px"></div>
+
+      <div id="qsetTableWrap"><p class="empty">No question set yet. Add labelled questions below — they persist to <span class="mono">questions.json</span> and drive the batch runner &amp; metrics.</p></div>
+
+      <div class="qadd">
+        <div class="qadd-row">
+          <input class="field" id="qGold" placeholder="gold pages, e.g.  EN 14509.pdf:42,43; DIN 4102.pdf:10" spellcheck="false">
+          <select class="field" id="qType" style="max-width:160px"></select>
+          <button class="btn small" id="qAdd">Add current question</button>
+        </div>
+        <div class="qadd-row" style="margin-top:6px">
+          <input class="field" id="qDe" placeholder="optional German variant (question_de) — enables the EN+DE cross-lingual run" spellcheck="false">
+        </div>
+        <div class="qadd-hint">
+          Uses the question in the box above. Quick-fill gold pages from the last run:
+          <button class="btn ghost small" id="qFillA" disabled>A retrieved</button>
+          <button class="btn ghost small" id="qFillB" disabled>B read</button>
+          <span id="qAddMsg" class="hint" style="margin-left:6px"></span>
+        </div>
+      </div>
+
+      <div class="batchbar">
+        <div class="qadd-row">
+          <span class="batch-label">Batch run</span>
+          <select class="field" id="batchProfile" style="max-width:170px" title="Parameter profile / budget ablation"></select>
+          <label class="inline" for="batchRepeat">repeat</label>
+          <input class="field" id="batchRepeat" type="number" min="1" max="10" value="1" style="max-width:64px">
+          <label class="inline" for="batchLang">lang</label>
+          <select class="field" id="batchLang" style="max-width:96px" title="Question language variant(s)">
+            <option value="en">EN</option>
+            <option value="de">DE</option>
+            <option value="both">EN+DE</option>
+          </select>
+          <label class="inline" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="batchJudge"> judge</label>
+          <button class="btn small" id="runBatch" disabled>Run whole set</button>
+          <span id="batchStatus" class="hint" style="margin:0"></span>
+        </div>
+        <div class="buildbar" id="batchBar"><i></i></div>
+        <p class="qadd-hint" style="margin-top:6px">Runs every question through <b>A</b> then <b>B</b>, <span class="mono">repeat</span>× each, tagged with gold pages in the log. Budget profiles cap B's steps for equalized-cost ablations. Headless equivalent: <span class="mono">python -m app.batch --repeat 3 --profile budget-b-low</span></p>
+      </div>
+    </section>
+
+    <section class="logbox" id="metricsBox">
+      <div class="top">
+        <h2>Metrics dashboard <span style="font-size:12px;color:var(--muted)">· system × question-type</span></h2>
+        <button class="btn ghost small" id="refreshMetrics" style="margin-left:auto">Refresh</button>
+        <button class="btn ghost small" id="dlMetrics" style="margin-left:8px" title="3-sheet Excel: Summary (grouped), Detail (per question), Answers">Download Excel</button>
+        <button class="btn ghost small" id="clearMetrics" style="margin-left:8px" title="Archive the current log to a .bak file and start the dashboard fresh">Clear log</button>
+      </div>
+      <div id="metricsSummary" class="metrics-summary"></div>
+      <div id="metricsTableWrap"><p class="empty">No metrics yet. Label gold pages, run a batch (or single queries), then Refresh. Recall@k / Precision@k / F1 are computed against <span class="mono">gold_pages</span>; unanswerable controls are excluded from those means.</p></div>
+      <p class="hint" id="costNote"></p>
+    </section>
+
+    <section class="logbox">
+      <div class="top">
+        <h2>Experiment log</h2>
+        <button class="btn ghost small" id="dlLog">Download JSONL</button>
+      </div>
+      <div id="logTableWrap"><p class="empty">No runs yet. Every query is appended server-side to <span class="mono">experiments.jsonl</span> with both answers, citations, trace and metrics.</p></div>
+    </section>
+  </main>
+</div>
+
+<div id="pageDrawer" class="drawer" hidden>
+  <div class="drawer-head">
+    <span id="drawerTitle" class="drawer-title">Source page</span>
+    <button class="btn ghost small" id="drawerClose">Close</button>
+  </div>
+  <pre id="drawerBody" class="drawer-body"></pre>
+</div>
+<div id="drawerScrim" class="drawer-scrim" hidden></div>
+
+<div id="mDetailScrim" class="modal-scrim" hidden></div>
+<div id="mDetail" class="modal" hidden>
+  <div class="modal-head">
+    <span id="mDetailTitle" class="modal-title">Per-question detail</span>
+    <button class="btn ghost small" id="mDetailClose">Close</button>
+  </div>
+  <div id="mDetailBody" class="modal-body"></div>
+</div>
+
+<footer>RetrievalLab v2 · thesis prototype — answers are grounded strictly in the uploaded sources; the two pipelines are isolated. Retrieval layer: PyMuPDF → RecursiveCharacterTextSplitter → BGE-M3 → Pinecone (A) | PageIndex-style tree → LangGraph agent (B). All outputs require verification.</footer>
+
+<script>
+/* =====================================================================
+   RetrievalLab v2 frontend — talks to the FastAPI backend.
+   Sequential protocol: POST /ask/vector, render, then POST /ask/reasoning.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN = n => n == null ? '—' : Number(n).toLocaleString('en-US');
+const fmtS = ms => (ms / 1000).toFixed(1) + 's';
+
+const state = { status: null, running: false, batchRunning: false, runs: [] };
+
+/* ---------- backend status ---------- */
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let msg = `HTTP ${r.status}`;
+    try { const j = await r.json(); msg += ' — ' + (j.detail || JSON.stringify(j)); } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function refreshStatus() {
+  try {
+    state.status = await api('/status');
+    $('backendWarn').style.display = 'none';
+  } catch {
+    state.status = null;
+    $('backendWarn').style.display = 'block';
+    setLamp('err', 'backend offline');
+    return;
+  }
+  const s = state.status;
+  $('stModel').textContent = s.model;
+  $('stEmb').textContent = s.embedding_model.split('/').pop();
+  $('stPine').textContent = s.pinecone_index;
+  $('stKeyO').innerHTML = s.keys.openai ? '<span class="badge ok">configured</span>' : '<span class="badge miss">missing</span>';
+  $('stKeyP').innerHTML = s.keys.pinecone ? '<span class="badge ok">configured</span>' : '<span class="badge miss">missing</span>';
+  renderDocList(s.docs);
+  if (s.settings && !cfgDirty) renderConfig(s.settings);
+  renderStale(s.index);
+  renderConditions();
+  if (s.vector_ready && s.trees_ready && !(s.index && s.index.stale)) {
+    $('idxStatus').className = 'ready';
+    $('idxStatus').textContent = s.restored
+      ? 'Indexes ready (restored from disk).' : 'Indexes ready.';
+  }
+  refreshReadiness();
+}
+
+/* ---------- configuration ---------- */
+let cfgDirty = false;   // don't clobber unsaved edits on the 15s status poll
+
+function renderConfig(s) {
+  $('cfgModel').value = s.model ?? '';
+  $('cfgEffort').value = s.reasoning_effort ?? 'low';
+  $('cfgSeed').value = s.seed == null ? '' : s.seed;
+  $('topK').value = s.top_k ?? 5;
+  $('maxSteps').value = s.max_steps ?? 8;
+  $('cfgChunk').value = s.chunk_size ?? 1000;
+  $('cfgOverlap').value = s.chunk_overlap ?? 150;
+  // embedding-model dropdown: the known models, plus the current one if it is a
+  // custom value not in the list (so nothing is silently lost)
+  const known = (state.status && state.status.embedding_models) || [];
+  const cur = s.embedding_model ?? '';
+  const opts = [...new Set([...known, cur].filter(Boolean))];
+  $('cfgEmb').innerHTML = opts.map(mdl =>
+    `<option value="${esc(mdl)}"${mdl === cur ? ' selected' : ''}>${esc(mdl)}</option>`).join('');
+  $('cfgEmb').value = cur;
+  $('configBox').classList.remove('cfg-dirty');
+}
+
+function renderStale(index) {
+  const warn = $('staleWarn');
+  if (index && index.stale) {
+    warn.hidden = false;
+    // index-time settings no longer destroy anything: they select another
+    // namespace, so the warning lists what THIS condition still needs
+    const miss = index.missing || [];
+    $('staleDiffs').textContent = miss.length
+      ? `${miss.length} document(s) not embedded in ${index.namespace || 'this namespace'}: `
+        + miss.slice(0, 3).map(docShort).join(', ') + (miss.length > 3 ? '…' : '')
+        + ' — other conditions are untouched.'
+      : (index.diffs || []).join(' · ');
+  } else {
+    warn.hidden = true;
+  }
+}
+
+/* every configuration built so far — switching between them is free */
+async function renderConditions() {
+  try {
+    const r = await fetch('/conditions').then(x => x.json());
+    const box = $('condNote');
+    if (!r.conditions || r.conditions.length < 1) { box.hidden = true; return; }
+    box.hidden = false;
+    $('condNs').textContent = r.current;
+    $('condList').innerHTML = r.conditions.map(c =>
+      `<br><span class="mono" style="opacity:${c.current ? 1 : .7}">${c.current ? '▸' : ' '} `
+      + `${esc(c.namespace)} — ${c.docs} doc(s), ${c.chunks} chunks`
+      + (c.dimension ? `, ${c.dimension}d` : '') + '</span>').join('');
+  } catch {}
+}
+
+function collectConfig() {
+  const seedRaw = $('cfgSeed').value.trim();
+  return {
+    model: $('cfgModel').value.trim(),
+    reasoning_effort: $('cfgEffort').value,
+    seed: seedRaw === '' ? null : parseInt(seedRaw),
+    top_k: parseInt($('topK').value) || 5,
+    max_steps: parseInt($('maxSteps').value) || 8,
+    chunk_size: parseInt($('cfgChunk').value) || 1000,
+    chunk_overlap: parseInt($('cfgOverlap').value) || 0,
+    embedding_model: $('cfgEmb').value.trim(),
+  };
+}
+
+['cfgModel','cfgEffort','cfgSeed','topK','maxSteps','cfgChunk','cfgOverlap','cfgEmb']
+  .forEach(id => $(id).addEventListener('input', () => {
+    cfgDirty = true;
+    $('configBox').classList.add('cfg-dirty');
+  }));
+
+$('saveConfig').addEventListener('click', async () => {
+  $('cfgStatus').style.color = 'var(--muted)';
+  $('cfgStatus').textContent = 'Applying…';
+  try {
+    const res = await api('/config', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(collectConfig()),
+    });
+    cfgDirty = false;
+    renderConfig(res.settings);
+    renderStale(res);
+    const n = Object.keys(res.applied || {}).length;
+    $('cfgStatus').style.color = 'var(--ok)';
+    $('cfgStatus').textContent = n ? `Applied ${n} change(s).` : 'No changes.';
+    refreshStatus();
+  } catch (err) {
+    $('cfgStatus').style.color = 'var(--err)';
+    $('cfgStatus').textContent = err.message;
+  }
+});
+
+$('resetConfig').addEventListener('click', async () => {
+  cfgDirty = false;
+  $('cfgStatus').textContent = '';
+  try {
+    const c = await api('/config');
+    renderConfig(c.settings);
+    renderStale(c);
+  } catch {}
+});
+
+function renderDocList(docs) {
+  const ul = $('docList'); ul.innerHTML = '';
+  for (const d of docs) {
+    const li = document.createElement('li');
+    const tree = d.tree_nodes ? ` · ${d.tree_nodes}n` : '';
+    const tbl = d.tables ? ` · <span title="tables detected and rendered at upload">${d.tables}📊</span>` : '';
+    li.innerHTML = `<span title="${esc(d.name)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.name)}</span>
+                    <span class="meta">${d.pages}p${tree}${tbl}</span>`;
+    ul.appendChild(li);
+  }
+}
+
+/* ---------- readiness ---------- */
+function setLamp(mode, label) {
+  $('lamp').className = 'lamp' + (mode ? ' ' + mode : '');
+  $('lampLabel').textContent = label;
+}
+function refreshReadiness() {
+  const s = state.status;
+  const keysOk = !!(s && s.keys.openai && s.keys.pinecone);
+  const hasDocs = !!(s && s.docs.length);
+  const built = !!(s && s.vector_ready && s.trees_ready);
+  $('buildIndex').disabled = !hasDocs || !keysOk || state.running;
+  $('askBtn').disabled = !(keysOk && hasDocs && built) || state.running;
+  const missing = [];
+  if (!keysOk) missing.push('add API keys to .env & restart (step 1)');
+  if (!hasDocs) missing.push('upload sources (step 2)');
+  else if (!built) missing.push('build the indexes (step 3)');
+  $('askHint').textContent = state.running ? '' : (missing.length ? 'Missing: ' + missing.join(' · ') : '');
+  if (typeof batchReady === 'function') batchReady();
+  if (state.running) return;
+  if (!s) return;
+  if (!missing.length) setLamp('ok', 'ready');
+  else if (!keysOk) setLamp('', 'waiting for keys');
+  else if (!hasDocs) setLamp('', 'waiting for sources');
+  else setLamp('', 'waiting for indexes');
+}
+
+/* ---------- sources ---------- */
+$('uploadBtn').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (!files.length) return;
+  const fd = new FormData();
+  files.forEach(f => fd.append('files', f));
+  $('ingestStatus').textContent = 'Uploading & parsing (PyMuPDF)…';
+  try {
+    const res = await api('/upload', { method: 'POST', body: fd });
+    $('ingestStatus').textContent = `${res.docs.length} document(s) parsed.`;
+    $('idxStatus').className = '';
+    $('idxStatus').textContent = 'Sources changed — (re)build the indexes.';
+  } catch (err) {
+    $('ingestStatus').textContent = 'Upload failed: ' + err.message;
+  }
+  refreshStatus();
+});
+$('clearDocs').addEventListener('click', async () => {
+  try { await api('/clear', { method: 'POST' }); } catch {}
+  $('ingestStatus').textContent = '';
+  $('idxStatus').className = '';
+  $('idxStatus').textContent = 'Waiting — upload sources first.';
+  refreshStatus();
+});
+
+/* ---------- index build ---------- */
+const STAGE_LABEL = {
+  idle: 'Waiting…', chunking: 'Chunking', loading_model: 'Loading embedding model',
+  embedding: 'Embedding + Pinecone upsert', trees: 'Building PageIndex trees',
+  done: 'Done', error: 'Error',
+};
+
+function pollBuildProgress() {
+  return setInterval(async () => {
+    let p;
+    try { p = await api('/build_progress'); } catch { return; }
+    const bar = $('buildBar');
+    bar.classList.remove('err', 'done');
+    bar.querySelector('i').style.width = p.pct + '%';
+    if (p.stage === 'error') {
+      bar.classList.add('err');
+      $('idxStatus').className = 'err';
+      $('idxStatus').textContent = 'Build failed: ' + p.detail;
+    } else {
+      const label = STAGE_LABEL[p.stage] || p.stage;
+      $('idxStatus').textContent = `${label} (${p.pct}%) — ${p.detail}`;
+      if (p.stage === 'done') bar.classList.add('done');
+    }
+  }, 500);
+}
+
+$('buildIndex').addEventListener('click', async () => {
+  $('buildIndex').disabled = true;
+  setLamp('busy', 'building indexes');
+  $('idxStatus').className = '';
+  $('idxStatus').textContent = 'Starting build…';
+  const bar = $('buildBar');
+  bar.classList.remove('err', 'done');
+  bar.classList.add('show');
+  bar.querySelector('i').style.width = '0%';
+  const poller = pollBuildProgress();
+  try {
+    const res = await api('/build_index', { method: 'POST' });
+    clearInterval(poller);
+    bar.classList.add('done'); bar.querySelector('i').style.width = '100%';
+    $('idxStatus').className = 'ready';
+    const v = res.vector, t = res.trees;
+    const tbl = v && v.table_chunks
+      ? ` · ${v.table_chunks} table summaries`
+        + (v.tables_summarized ? ` (${v.tables_summarized} newly described)` : ' (cached)')
+      : '';
+    // incremental: say what was actually recomputed vs reused
+    const vPart = !v ? 'vectors skipped'
+      : v.reused
+        ? `${v.chunks} chunks reused from "${v.namespace}" (nothing re-embedded)`
+        : `${v.indexed_docs.length} doc(s) embedded, ${v.reused_docs.length} reused`
+          + ` — ${v.chunks} chunks${tbl} → "${v.index}"/${v.namespace} (${v.dimension}d, ${v.seconds}s)`;
+    const tPart = !t ? 'trees skipped'
+      : `trees: ${Object.keys(t.docs || {}).length} built, ${(t.reused || []).length} reused (${t.seconds}s)`;
+    $('idxStatus').textContent = `Ready — ${vPart} · ${tPart}.`;
+    renderConditions();
+    loadTreeAudit();
+  } catch (err) {
+    clearInterval(poller);
+    bar.classList.add('err');
+    $('idxStatus').className = 'err';
+    $('idxStatus').textContent = 'Build failed: ' + err.message;
+  }
+  refreshStatus();
+});
+
+/* ---------- rendering ---------- */
+function mdLite(s) {
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[(\d{1,2})\]/g, '<sup class="cit">[$1]</sup>')
+    .replace(/\n/g, '<br>');
+}
+const renderAnswer = (el, text) => el.innerHTML = `<div class="answer">${mdLite(text)}</div>`;
+const renderError = (el, err) => el.innerHTML = `<div class="errbox">${esc(err.message || String(err))}</div>`;
+
+/* ---------- clickable citations + source drawer ---------- */
+async function openPage(doc, page, backToTree) {
+  const body = $('drawerBody');
+  $('drawerTitle').textContent = `${doc} · p.${page}`;
+  body.classList.remove('as-html');
+  body.textContent = 'Loading…';
+  $('pageDrawer').hidden = false; $('drawerScrim').hidden = false;
+  try {
+    const r = await api('/page?doc=' + encodeURIComponent(doc) + '&page=' + page);
+    $('drawerTitle').textContent = `${r.doc} · p.${r.page} / ${r.pages_total}`;
+    body.textContent = r.text || '(no text on this page)';
+    if (backToTree) {                       // came from the structure view
+      const back = document.createElement('button');
+      back.className = 'drawer-back';
+      back.textContent = '← back to structure';
+      back.addEventListener('click', () => openTree(backToTree));
+      body.prepend(back, document.createElement('br'));
+    }
+  } catch (err) {
+    body.textContent = 'Could not load page: ' + err.message;
+  }
+}
+
+/* ---------- document structure (PageIndex tree) viewer ---------- */
+function treeNodeHTML(node, doc) {
+  const kids = (node.children || []).map(c => treeNodeHTML(c, doc)).join('');
+  const sum = node.summary ? `<span class="nsum">${esc(node.summary)}</span>` : '';
+  return `<li>
+      <span class="nid">${esc(node.id || '')}</span><span class="ntitle">${esc(node.title || '')}</span>
+      <span class="npages" data-doc="${esc(doc)}" data-page="${node.start_page}"
+            title="open p.${node.start_page}">p.${node.start_page}-${node.end_page}</span>
+      ${sum}${kids ? `<ul>${kids}</ul>` : ''}
+    </li>`;
+}
+
+async function openTree(doc) {
+  const body = $('drawerBody');
+  $('drawerTitle').textContent = `Structure · ${doc}`;
+  body.classList.add('as-html');
+  body.textContent = 'Loading…';
+  $('pageDrawer').hidden = false; $('drawerScrim').hidden = false;
+  try {
+    const r = await api('/trees/detail?doc=' + encodeURIComponent(doc));
+    const a = r.audit || {};
+    $('drawerTitle').textContent = `Structure · ${r.doc}`;
+    body.innerHTML =
+      `<p class="hint" style="margin:0 0 10px">${esc(a.source || '')} · ${a.nodes} nodes ·
+        ${a.leaves} leaves · ${a.avg_pages_per_leaf} pg/leaf · ${r.pages} pages ·
+        ${r.clauses} indexed clauses</p>
+       <div class="tv"><ul>${treeNodeHTML(r.tree, r.doc)}</ul></div>`;
+    body.querySelectorAll('.npages').forEach(s =>
+      s.addEventListener('click', () => openPage(s.dataset.doc, parseInt(s.dataset.page), r.doc)));
+  } catch (err) {
+    body.classList.remove('as-html');
+    body.textContent = 'Could not load structure: ' + err.message;
+  }
+}
+function closeDrawer() { $('pageDrawer').hidden = true; $('drawerScrim').hidden = true; }
+$('drawerClose').addEventListener('click', closeDrawer);
+$('drawerScrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+/* A: map [n] citations to retrieved passages -> open that page */
+function attachCitClicks(el, retrieved) {
+  el.querySelectorAll('sup.cit').forEach(sup => {
+    const n = parseInt(sup.textContent.replace(/[^\d]/g, ''));
+    const hit = retrieved && retrieved[n - 1];
+    if (!hit) return;
+    sup.classList.add('cit-link');
+    sup.title = `${hit.doc} · p.${hit.page}` + (hit.clause ? ` · clause ${hit.clause}` : '');
+    sup.addEventListener('click', () => openPage(hit.doc, hit.page));
+  });
+}
+
+/* B: linkify (Doc, p.X) citations -> open that page */
+/* B cites as "(Doc, p.42)" but also "(Doc, p.5; p.8; p.20)". Parse the whole
+   parenthetical: the document name is whatever precedes the FIRST page marker,
+   then every page number inside becomes its own link. A lazy regex that stops at
+   the closing paren would swallow the earlier page refs into the document name. */
+const _PAGE_TOKEN = /\b(?:pp?|S|Seite|Seiten)\.?\s*\d+/i;
+// a page marker followed by a number, optionally a range ("pp.15-23", "S. 4–7")
+const _PAGE_TOKEN_G = /\b((?:pp?|S|Seite|Seiten)\.?\s*)(\d+)(\s*[-–—]\s*(\d+))?/gi;
+
+function linkifyPageCites(html) {
+  const link = (doc, page) =>
+    `<span class="pcite" data-doc="${esc(doc)}" data-page="${page}">${page}</span>`;
+  return html.replace(/\(([^()]{1,160})\)/g, (full, inner) => {
+    if (!_PAGE_TOKEN.test(inner)) return full;
+    const doc = inner.slice(0, inner.search(_PAGE_TOKEN))
+      .replace(/[,;\s]+$/, '').trim();
+    if (!doc) return full;                       // e.g. a bare "(p.12)" — no doc to open
+    const linked = inner.replace(_PAGE_TOKEN_G, (m, pre, from, rangePart, to) => {
+      if (!rangePart) return pre + link(doc, from);
+      // keep the original dash/spacing, link BOTH ends of the range
+      const dash = rangePart.slice(0, rangePart.length - to.length);
+      return pre + link(doc, from) + dash + link(doc, to);
+    });
+    return '(' + linked + ')';
+  });
+}
+function renderAnswerB(el, text) {
+  el.innerHTML = `<div class="answer">${linkifyPageCites(mdLite(text))}</div>`;
+  el.querySelectorAll('.pcite').forEach(s =>
+    s.addEventListener('click', () => openPage(s.dataset.doc, parseInt(s.dataset.page))));
+}
+
+function renderCitesA(hits) {
+  const ul = $('citesA'); ul.innerHTML = '';
+  hits.forEach((h, i) => {
+    const li = document.createElement('li');
+    // the clause a chunk came from is the fastest way to see WHY it was retrieved
+    const clause = h.clause ? ` · <b title="clause this chunk was cut from">clause ${esc(h.clause)}</b>` : '';
+    // multi-vector: this chunk is a table SUMMARY — show the real table that was
+    // attached to the answering call, so the paraphrase can be checked against it
+    const tbl = h.table_image
+      ? ` · <b title="indexed as a summary; this image went to the model">📊 table</b>` : '';
+    const img = h.table_image
+      ? `<br><a href="/table_image/${encodeURIComponent(h.table_image)}" target="_blank"
+             title="open the rendered table"><img src="/table_image/${encodeURIComponent(h.table_image)}"
+             alt="table p.${h.page}" style="max-width:100%;max-height:190px;border:1px solid var(--line,#ccc);
+             border-radius:6px;margin-top:6px"></a>` : '';
+    li.innerHTML = `<span class="src">[${i + 1}] ${esc(h.doc)} · p.${h.page}${clause}${tbl} · #${h.chunk} · similarity ${h.score.toFixed(3)}</span>${esc(h.snippet)}…${img}`;
+    ul.appendChild(li);
+  });
+  $('citeWrapA').hidden = false;
+}
+function traceLi(t, live) {
+  const li = document.createElement('li');
+  if (live) li.className = 'live';
+  if (t.t === 'tool') {
+    li.innerHTML = `<span class="tool">${esc(t.name)}</span> <span class="mono" style="font-size:11px">${esc(JSON.stringify(t.input))}</span>`;
+  } else if (t.t === 'obs') {
+    li.innerHTML = `<span class="obs">→ ${esc(t.preview)}…</span>`;
+  } else {
+    li.innerHTML = `<span class="thought">${esc(t.text)}</span>`;
+  }
+  return li;
+}
+function renderTrace(trace) {
+  const ol = $('traceB'); ol.innerHTML = '';
+  for (const t of trace) ol.appendChild(traceLi(t));
+  $('traceWrap').hidden = false;
+}
+function appendTraceItem(item) {
+  $('traceWrap').hidden = false;
+  const ol = $('traceB');
+  ol.appendChild(traceLi(item, true));
+  const body = ol.closest('.panel-body');
+  if (body) body.scrollTop = body.scrollHeight;
+}
+
+/* stream pipeline B live via SSE; resolves with the final result dict */
+function askReasoningStream(question, runId) {
+  return new Promise((resolve, reject) => {
+    const maxSteps = parseInt($('maxSteps').value) || 8;
+    const url = '/ask/reasoning/stream?question=' + encodeURIComponent(question)
+      + '&max_steps=' + maxSteps + '&run_id=' + encodeURIComponent(runId);
+    const es = new EventSource(url);
+    $('traceWrap').hidden = false; $('traceB').innerHTML = '';
+    let result = null, done = false;
+    es.onmessage = ev => {
+      let d; try { d = JSON.parse(ev.data); } catch { return; }
+      if (d.type === 'step') {
+        appendTraceItem(d.item);
+        $('stateB').textContent = `reasoning… (${$('traceB').children.length} trace steps)`;
+      } else if (d.type === 'done') {
+        result = d.result; done = true;
+      } else if (d.type === 'logged') {
+        es.close(); resolve(result);
+      } else if (d.type === 'error') {
+        es.close(); reject(new Error(d.error));
+      }
+    };
+    es.onerror = () => { es.close(); done ? resolve(result) : reject(new Error('live stream connection lost')); };
+  });
+}
+/* evidence page sets -> "doc p.1,2,5 · doc2 p.3" */
+function fmtPages(map) {
+  if (!map) return '—';
+  const parts = Object.entries(map).map(([doc, pages]) =>
+    `${docShort(doc)} p.${pages.join(',')}`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+const docShort = d => { const s = String(d).replace(/\.(pdf|txt|md)$/i, ''); return s.length > 18 ? s.slice(0, 17) + '…' : s; };
+const pageCount = map => map ? Object.values(map).reduce((a, p) => a + p.length, 0) : 0;
+
+/* multi-vector: how many real table images went into the answering call */
+const tblNote = r => (r.table_images && r.table_images.length)
+  ? `<br><span title="retrieval ran on the table summary; these images were attached to the answering call">📊 <b>${r.table_images.length}</b> table image(s) sent to the model</span>`
+  : '';
+
+const metA = r => $('metA').innerHTML =
+  `⏱ <b>${fmtS(r.latency_ms)}</b> · ⇢ <b>${fmtN(r.usage.in)}</b> in · ⇠ <b>${fmtN(r.usage.out)}</b> out · <b>1</b> call · top-k <b>${r.top_k}</b>`
+  + (r.evidence ? `<br><span title="pages whose chunks were retrieved">📎 retrieved <b>${pageCount(r.evidence.retrieved)}</b> pg: ${esc(fmtPages(r.evidence.retrieved))}</span>` : '')
+  + tblNote(r);
+const metB = r => $('metB').innerHTML =
+  `⏱ <b>${fmtS(r.latency_ms)}</b> · ⇢ <b>${fmtN(r.usage.in)}</b> in · ⇠ <b>${fmtN(r.usage.out)}</b> out · <b>${r.calls}</b> calls · <b>${r.tool_calls}</b> tools`
+  + (r.evidence ? `<br><span title="pages the agent actually read in full">📖 read <b>${pageCount(r.evidence.read)}</b> pg: ${esc(fmtPages(r.evidence.read))}</span>`
+      + (pageCount(r.evidence.searched) ? `<br><span title="pages seen only as keyword snippets" style="opacity:.75">🔎 searched ${pageCount(r.evidence.searched)} pg</span>` : '') : '')
+  + tblNote(r);
+
+function railSet(id, cls) {
+  const el = $(id);
+  el.classList.remove('running', 'done', 'err');
+  if (cls) el.classList.add(cls);
+  el.querySelector('i').style.width = cls ? '100%' : '0%';
+}
+
+/* ---------- local run table ---------- */
+function pushRun(entry) {
+  state.runs.push(entry);
+  const rows = state.runs.map((e, i) => `
+    <tr>
+      <td class="num">${i + 1}</td>
+      <td class="q" title="${esc(e.question)}">${esc(e.question)}</td>
+      <td class="num">${e.A.error ? 'error' : fmtS(e.A.latency_ms) + ' · ' + fmtN(e.A.usage.in + e.A.usage.out) + ' tk'}</td>
+      <td class="num">${e.B.error ? 'error' : fmtS(e.B.latency_ms) + ' · ' + fmtN(e.B.usage.in + e.B.usage.out) + ' tk · ' + e.B.calls + ' calls'}</td>
+    </tr>`).join('');
+  $('logTableWrap').innerHTML = `<table>
+    <thead><tr><th>#</th><th>Question</th><th>A · Vector</th><th>B · Reasoning</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+$('dlLog').addEventListener('click', () => { window.location = '/log/download'; });
+
+/* ---------- question set (gold labels) ---------- */
+state.questions = [];
+state.qTypes = ['other'];
+state.lastEvidence = null;   // {A: {...}, B: {...}} from the most recent run
+
+function parseGold(str) {
+  // "doc.pdf:42,43; other:10" -> {doc.pdf:[42,43], other:[10]}
+  const out = {};
+  for (const part of String(str).split(';')) {
+    const i = part.lastIndexOf(':');
+    if (i < 0) continue;
+    const doc = part.slice(0, i).trim();
+    const pages = part.slice(i + 1).split(',')
+      .map(x => parseInt(x.trim())).filter(n => n > 0);
+    if (doc && pages.length) out[doc] = [...new Set(pages)].sort((a, b) => a - b);
+  }
+  return out;
+}
+const goldToStr = g => Object.entries(g || {})
+  .map(([d, p]) => `${d}:${p.join(',')}`).join('; ');
+const goldCount = g => Object.values(g || {}).reduce((a, p) => a + p.length, 0);
+
+async function loadQuestions() {
+  try {
+    const r = await api('/questions');
+    state.questions = r.questions;
+    state.qTypes = r.types;
+    const sel = $('qType');
+    if (sel.options.length !== r.types.length) {
+      sel.innerHTML = r.types.map(t => `<option>${t}</option>`).join('');
+    }
+    renderQuestions();
+  } catch {}
+}
+
+function renderQuestions() {
+  const wrap = $('qsetTableWrap');
+  if (!state.questions.length) {
+    wrap.innerHTML = `<p class="empty">No question set yet. Add labelled questions below — they persist to <span class="mono">questions.json</span> and drive the batch runner &amp; metrics.</p>`;
+    $('qsetStatus').textContent = '';
+    return;
+  }
+  const rows = state.questions.map((q, i) => {
+    const gc = goldCount(q.gold_pages);
+    const gold = gc
+      ? `<span class="qgold">${esc(goldToStr(q.gold_pages))}</span>`
+      : `<span class="qgold none">— no gold —</span>`;
+    return `<tr>
+      <td class="num">${i + 1}</td>
+      <td><span class="qtype">${esc(q.type)}</span>${q.question_de ? '<span class="qtype" style="color:var(--rsn)" title="has German variant">DE</span>' : ''}</td>
+      <td class="q" title="${esc(q.question)}${q.question_de ? '\n[DE] ' + esc(q.question_de) : ''}">${esc(q.question)}</td>
+      <td>${gold}</td>
+      <td class="qrow-actions">
+        <button class="linkbtn" data-load="${esc(q.id)}">load</button>
+        <button class="linkbtn del" data-del="${esc(q.id)}">delete</button>
+      </td></tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>#</th><th>Type</th><th>Question</th><th>Gold pages</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  const total = state.questions.reduce((a, q) => a + goldCount(q.gold_pages), 0);
+  $('qsetStatus').textContent = `${state.questions.length} question(s) · ${total} gold pages`;
+
+  wrap.querySelectorAll('[data-load]').forEach(b =>
+    b.addEventListener('click', () => {
+      const q = state.questions.find(x => x.id === b.dataset.load);
+      if (q) { $('question').value = q.question; $('question').focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    }));
+  wrap.querySelectorAll('[data-del]').forEach(b =>
+    b.addEventListener('click', () => deleteQuestion(b.dataset.del)));
+  batchReady();
+}
+
+async function persistQuestions(list, okMsg) {
+  try {
+    const r = await api('/questions', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ questions: list }),
+    });
+    state.questions = r.questions;
+    renderQuestions();
+    $('qAddMsg').style.color = 'var(--ok)';
+    $('qAddMsg').textContent = okMsg || 'Saved.';
+  } catch (err) {
+    $('qAddMsg').style.color = 'var(--err)';
+    $('qAddMsg').textContent = err.message;
+  }
+}
+
+function deleteQuestion(id) {
+  persistQuestions(state.questions.filter(q => q.id !== id), 'Deleted.');
+}
+
+$('qAdd').addEventListener('click', () => {
+  const question = $('question').value.trim();
+  if (!question) { $('qAddMsg').style.color = 'var(--err)'; $('qAddMsg').textContent = 'Type a question in the box above first.'; return; }
+  const entry = { question, type: $('qType').value, gold_pages: parseGold($('qGold').value) };
+  const de = $('qDe').value.trim();
+  if (de) entry.question_de = de;
+  persistQuestions([...state.questions, entry], 'Added.');
+  $('qGold').value = ''; $('qDe').value = '';
+});
+
+function fillGoldFrom(kind) {
+  const ev = state.lastEvidence && state.lastEvidence[kind];
+  const map = kind === 'A' ? (ev && ev.retrieved) : (ev && ev.read);
+  if (map) $('qGold').value = goldToStr(map);
+}
+$('qFillA').addEventListener('click', () => fillGoldFrom('A'));
+$('qFillB').addEventListener('click', () => fillGoldFrom('B'));
+$('dlQuestions').addEventListener('click', () => { window.location = '/questions'; });
+
+/* ---------- bulk import of a questions.json file ---------- */
+$('importQuestions').addEventListener('click', () => $('importQuestionsFile').click());
+$('importQuestionsFile').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';                      // allow re-picking the same file
+  if (!file) return;
+  const msg = $('importMsg');
+  const show = (text, ok) => { msg.style.display = 'block'; msg.style.color = ok ? 'var(--ok)' : 'var(--err)'; msg.innerHTML = text; };
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch (err) { show('Not valid JSON: ' + err.message, false); return; }
+
+  // accept {questions:[...]} or a bare [...]
+  const incoming = Array.isArray(parsed) ? parsed : (parsed && parsed.questions);
+  if (!Array.isArray(incoming) || !incoming.length) {
+    show('No questions found. Expected {"questions":[…]} or a JSON array.', false); return;
+  }
+
+  // replace or merge — only asked when a set already exists
+  let list = incoming;
+  if (state.questions.length) {
+    const replace = confirm(`Import ${incoming.length} question(s).\n\nOK = REPLACE the current ${state.questions.length}.\nCancel = MERGE (add to the existing set).`);
+    list = replace ? incoming : [...state.questions, ...incoming];
+  }
+
+  try {
+    const r = await api('/questions', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ questions: list }),
+    });
+    state.questions = r.questions;
+    renderQuestions();
+    const warn = goldDocWarnings(r.questions);
+    show(`Imported — ${r.questions.length} question(s) now in the set`
+      + (warn ? `<br><span style="color:var(--err)">⚠ ${warn}</span>` : ''), true);
+  } catch (err) {
+    show('Import rejected: ' + err.message, false);   // server validation (dup id, bad gold shape)
+  }
+});
+
+/* gold_pages doc names MUST match the loaded document filenames, or metrics
+   silently score 0. Surface any that don't. */
+function goldDocWarnings(qs) {
+  const known = new Set((state.status && state.status.docs || []).map(d => d.name));
+  if (!known.size) return '';               // nothing uploaded yet — can't check
+  const missing = new Set();
+  for (const q of qs) for (const doc of Object.keys(q.gold_pages || {})) if (!known.has(doc)) missing.add(doc);
+  if (!missing.size) return '';
+  const list = [...missing].slice(0, 4).map(esc).join(', ');
+  return `${missing.size} gold-page document name(s) don't match any uploaded PDF `
+    + `(${list}${missing.size > 4 ? '…' : ''}). Metrics will score 0 for those until the names match exactly.`;
+}
+
+/* ---------- batch runner ---------- */
+async function loadProfiles() {
+  try {
+    const r = await api('/batch/profiles');
+    const sel = $('batchProfile');
+    sel.innerHTML = Object.entries(r.profiles).map(([k, v]) => {
+      const desc = Object.keys(v).length ? ' (' + Object.entries(v).map(([a, b]) => `${a}=${b}`).join(',') + ')' : '';
+      return `<option value="${esc(k)}">${esc(k)}${esc(desc)}</option>`;
+    }).join('');
+  } catch {}
+}
+
+function batchReady() {
+  const s = state.status;
+  const built = !!(s && s.vector_ready && s.trees_ready && !(s.index && s.index.stale));
+  $('runBatch').disabled = !built || !state.questions.length || state.running || state.batchRunning;
+}
+
+$('runBatch').addEventListener('click', async () => {
+  if (state.batchRunning) return;
+  const profile = $('batchProfile').value;
+  const repeat = parseInt($('batchRepeat').value) || 1;
+  state.batchRunning = true;
+  batchReady();
+  const bar = $('batchBar'); bar.classList.add('show'); bar.classList.remove('done', 'err');
+  bar.querySelector('i').style.width = '0%';
+  $('batchStatus').style.color = 'var(--muted)';
+  $('batchStatus').textContent = 'Starting…';
+  try {
+    const start = await api('/batch', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profile, repeat, judge: $('batchJudge').checked, lang: $('batchLang').value }),
+    });
+    $('batchStatus').textContent = `Running (${start.profile}, top-k ${start.top_k}, max-steps ${start.max_steps})…`;
+    await pollBatch(bar);
+  } catch (err) {
+    bar.classList.add('err');
+    $('batchStatus').style.color = 'var(--err)';
+    $('batchStatus').textContent = err.message;
+    state.batchRunning = false;
+    batchReady();
+  }
+});
+
+function pollBatch(bar) {
+  return new Promise(resolve => {
+    const iv = setInterval(async () => {
+      let p;
+      try { p = await api('/batch_progress'); } catch { return; }
+      const pct = p.total ? Math.round(100 * p.done / p.total) : 0;
+      bar.querySelector('i').style.width = pct + '%';
+      if (p.running) {
+        $('batchStatus').textContent = `${p.done}/${p.total} · ${p.current}`;
+      } else {
+        clearInterval(iv);
+        state.batchRunning = false;
+        if (p.error) {
+          bar.classList.add('err');
+          $('batchStatus').style.color = 'var(--err)';
+          $('batchStatus').textContent = 'Batch failed: ' + p.error;
+        } else {
+          bar.classList.add('done');
+          bar.querySelector('i').style.width = '100%';
+          $('batchStatus').style.color = 'var(--ok)';
+          $('batchStatus').textContent = `Done — ${p.done} runs logged (batch ${p.batch_id}).`;
+          if (typeof loadMetrics === 'function') loadMetrics();
+          if (typeof loadHeatSources === 'function') loadHeatSources();
+        }
+        batchReady();
+        resolve();
+      }
+    }, 400);
+  });
+}
+
+/* ---------- tree quality audit ---------- */
+async function loadTreeAudit() {
+  // NOT gated on status.trees_ready: that flag is all-or-nothing, so a single
+  // document without a tree used to hide the whole panel. Drive it from the
+  // audit itself and list the missing ones with their own build button.
+  let docs = [];
+  try { docs = (await api('/trees/audit')).docs; } catch { return; }
+  if (!docs.length) { $('treeBox').hidden = true; return; }
+  $('treeBox').hidden = false;
+  $('treeAudit').innerHTML = docs.map(d => d.built ? `
+    <div class="tree-row ${d.degenerate ? 'bad' : ''}">
+      <div class="tr-name" title="${esc(d.name)}">${esc(d.name)}</div>
+      <div class="tr-meta">${d.source} · ${d.nodes} nodes · ${d.leaves} leaves · ${d.avg_pages_per_leaf} pg/leaf · max ${d.max_leaf_span}</div>
+      ${d.degenerate
+        ? `<div class="tr-flag">⚠ ${esc(d.reasons.join('; '))}</div>`
+        : `<div class="tr-ok">✓ well-structured</div>`}
+      <div class="tr-actions">
+        <button class="linkbtn" data-tree="${esc(d.name)}">view structure</button>
+        <button class="linkbtn" data-clauses="${esc(d.name)}"
+                title="rebuild from the document's own clause numbering — deterministic, no LLM call">rebuild from clauses</button>
+        <button class="linkbtn" data-rebuild="${esc(d.name)}">rebuild with LLM</button>
+      </div>
+    </div>` : `
+    <div class="tree-row">
+      <div class="tr-name" title="${esc(d.name)}">${esc(d.name)}</div>
+      <div class="tr-meta">${d.pages} pages · no tree yet</div>
+      <div class="tr-actions">
+        <button class="linkbtn" data-buildtree="${esc(d.name)}">build tree</button>
+      </div>
+    </div>`).join('');
+  $('treeAudit').querySelectorAll('[data-rebuild]').forEach(b =>
+    b.addEventListener('click', () => rebuildTree(b.dataset.rebuild, b)));
+  $('treeAudit').querySelectorAll('[data-clauses]').forEach(b =>
+    b.addEventListener('click', () => rebuildTree(b.dataset.clauses, b, 'clauses')));
+  $('treeAudit').querySelectorAll('[data-tree]').forEach(b =>
+    b.addEventListener('click', () => openTree(b.dataset.tree)));
+  // incremental build: structure THIS document only, leaving the rest alone
+  $('treeAudit').querySelectorAll('[data-buildtree]').forEach(b =>
+    b.addEventListener('click', () => buildOneTree(b.dataset.buildtree, b)));
+}
+
+async function buildOneTree(doc, btn) {
+  btn.disabled = true; btn.textContent = 'Building… (LLM)';
+  try {
+    await api('/build_index', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ scope: 'trees', docs: [doc] }),
+    });
+    await refreshStatus();
+    loadTreeAudit();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Retry';
+    const row = btn.closest('.tree-row');
+    if (row) {
+      const p = document.createElement('div');
+      p.className = 'tr-err';
+      p.textContent = err.message;
+      row.appendChild(p);
+    }
+  }
+}
+
+async function rebuildTree(doc, btn, method = 'llm') {
+  btn.disabled = true;
+  btn.textContent = method === 'clauses' ? 'Rebuilding…' : 'Rebuilding… (LLM, ~10s)';
+  const row = btn.closest('.tree-row');
+  let msg = row && row.querySelector('.tr-err');
+  if (msg) msg.remove();
+  try {
+    await api('/trees/rebuild', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ doc, method }),
+    });
+    await refreshStatus();
+    loadTreeAudit();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Retry rebuild';
+    const p = document.createElement('div');
+    p.className = 'tr-err';
+    p.textContent = err.message;           // show the real reason, not a tooltip
+    if (row) row.appendChild(p);
+  }
+}
+
+/* ---------- evidence heatmap ---------- */
+const HEAT = {
+  cw: 7, laneH: 12, gap: 2, caret: 7, foot: 4,
+  aFill: '#2AA7A0', aTrack: '#E4EEED',
+  bRead: '#7C4DBE', bSearch: '#D9C9EE', bTrack: '#ECE6F5',
+  gold: '#C08A1E', ink: '#5F6B63',
+};
+HEAT.H = HEAT.caret + HEAT.laneH + HEAT.gap + HEAT.laneH + HEAT.foot;
+
+state.logRuns = [];   // evaluation runs grouped from /log
+
+function docPageCount(name) {
+  const d = (state.status && state.status.docs || []).find(x => x.name === name);
+  return d ? d.pages : 0;
+}
+const setOf = (map, doc) => new Set(((map && map[doc]) || []).map(Number));
+
+/* one document strip as SVG markup, at vertical origin y0 */
+function stripSVG(doc, N, sets, y0) {
+  const { cw, laneH, gap, caret } = HEAT;
+  const yA = y0 + caret, yB = yA + laneH + gap;
+  const W = N * cw;
+  let s = '';
+  s += `<rect x="0" y="${yA}" width="${W}" height="${laneH}" fill="${HEAT.aTrack}"/>`;
+  s += `<rect x="0" y="${yB}" width="${W}" height="${laneH}" fill="${HEAT.bTrack}"/>`;
+  for (let p = 1; p <= N; p++) {
+    const x = (p - 1) * cw;
+    const inA = sets.A.has(p), inRead = sets.B.has(p), inSearch = sets.S.has(p), inGold = sets.G.has(p);
+    if (inA) s += `<rect x="${x}" y="${yA}" width="${cw}" height="${laneH}" fill="${HEAT.aFill}"/>`;
+    if (inRead) s += `<rect x="${x}" y="${yB}" width="${cw}" height="${laneH}" fill="${HEAT.bRead}"/>`;
+    else if (inSearch) s += `<rect x="${x}" y="${yB}" width="${cw}" height="${laneH}" fill="${HEAT.bSearch}"/>`;
+    if (inGold) {
+      s += `<rect x="${x + 0.5}" y="${yA - 0.5}" width="${cw - 1}" height="${laneH * 2 + gap + 1}" fill="none" stroke="${HEAT.gold}" stroke-width="1.4"/>`;
+      const cx = x + cw / 2;
+      s += `<path d="M${cx - 3} ${y0} L${cx + 3} ${y0} L${cx} ${y0 + caret - 1.5} Z" fill="${HEAT.gold}"/>`;
+    }
+    // hover target spanning both lanes
+    const roles = [inA && 'A retrieved', inRead && 'B read', (!inRead && inSearch) && 'B searched', inGold && 'gold'].filter(Boolean).join(', ') || 'untouched';
+    s += `<rect x="${x}" y="${yA}" width="${cw}" height="${laneH * 2 + gap}" fill="transparent"><title>p.${p} — ${roles}</title></rect>`;
+  }
+  // lane letters
+  s += `<text x="-4" y="${yA + laneH - 2}" text-anchor="end" font-size="9" font-family="monospace" fill="${HEAT.ink}">A</text>`;
+  s += `<text x="-4" y="${yB + laneH - 2}" text-anchor="end" font-size="9" font-family="monospace" fill="${HEAT.ink}">B</text>`;
+  return s;
+}
+
+function jaccard(a, b) { const A = new Set(a), B = new Set(b); const inter = [...A].filter(x => B.has(x)).length; const uni = new Set([...A, ...B]).size; return uni ? inter / uni : null; }
+
+function renderHeatmap(data) {
+  const wrap = $('heatWrap');
+  const docs = [...new Set([
+    ...Object.keys(data.retrieved || {}), ...Object.keys(data.read || {}),
+    ...Object.keys(data.searched || {}), ...Object.keys(data.gold || {}),
+  ])];
+  if (!docs.length) {
+    wrap.innerHTML = `<p class="empty">No evidence pages in this run.</p>`;
+    $('heatLegend').hidden = true; $('dlHeat').disabled = true;
+    return;
+  }
+  let html = data.title ? `<p class="hint" style="margin:0 0 4px">${esc(data.title)}</p>` : '';
+  state._heatExport = [];
+  for (const doc of docs) {
+    const referenced = [].concat(data.retrieved?.[doc] || [], data.read?.[doc] || [], data.searched?.[doc] || [], data.gold?.[doc] || []);
+    const N = docPageCount(doc) || (referenced.length ? Math.max(...referenced) : 1);
+    const sets = { A: setOf(data.retrieved, doc), B: setOf(data.read, doc), S: setOf(data.searched, doc), G: setOf(data.gold, doc) };
+    const body = stripSVG(doc, N, sets, 0);
+    const W = N * HEAT.cw;
+    const svg = `<svg class="heat-svg" width="${W + 16}" height="${HEAT.H}" viewBox="-16 0 ${W + 16} ${HEAT.H}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+    state._heatExport.push({ doc, N, sets });
+    const ov = jaccard([...sets.A], [...sets.B]);
+    html += `<div class="heat-doc">
+      <div class="heat-name"><span>${esc(doc)}</span>
+        <span class="meta">${N}p · A ${sets.A.size} · B ${sets.B.size}${sets.G.size ? ' · gold ' + sets.G.size : ''}${ov != null ? ' · overlap ' + ov.toFixed(2) : ''}</span></div>
+      <div class="heat-svg-wrap">${svg}</div></div>`;
+  }
+  wrap.innerHTML = html;
+  $('heatLegend').hidden = false;
+  $('heatLegend').innerHTML =
+    `<span><span class="sw" style="background:${HEAT.aFill}"></span>A retrieved</span>`
+    + `<span><span class="sw" style="background:${HEAT.bRead}"></span>B read</span>`
+    + `<span><span class="sw" style="background:${HEAT.bSearch}"></span>B searched (snippet)</span>`
+    + `<span><span class="sw" style="border:1.4px solid ${HEAT.gold};background:transparent"></span>gold page</span>`
+    + `<span class="stat">◇ marks gold · hover a cell for its page</span>`;
+  $('dlHeat').disabled = false;
+}
+
+/* combined standalone SVG for thesis export */
+function buildExportSVG(title) {
+  const strips = state._heatExport || [];
+  if (!strips.length) return null;
+  const rowGap = 26, labelH = 16, left = 20, top = 30;
+  let maxW = 0, y = top, body = '';
+  for (const { doc, N, sets } of strips) {
+    const W = N * HEAT.cw;
+    maxW = Math.max(maxW, W);
+    body += `<text x="${left}" y="${y - 4}" font-size="11" font-family="sans-serif" fill="#17201B">${esc(doc)} (${N}p)</text>`;
+    body += `<g transform="translate(${left + 16}, ${y})">${stripSVG(doc, N, sets, 0)}</g>`;
+    y += HEAT.H + labelH + rowGap;
+  }
+  const W = left + 16 + maxW + 20, H = y;
+  const header = `<text x="${left}" y="18" font-size="13" font-family="sans-serif" fill="#17201B">${esc(title || 'Evidence heatmap')}</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#FFFFFF"/>${header}${body}</svg>`;
+}
+
+$('dlHeat').addEventListener('click', () => {
+  const svg = buildExportSVG(state._heatTitle);
+  if (!svg) return;
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'evidence_heatmap.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* gold lookup for an interactive question by matching the question set */
+function goldForQuestion(qtext) {
+  const q = (state.questions || []).find(x => x.question.trim() === (qtext || '').trim());
+  return q ? q.gold_pages : null;
+}
+
+async function loadHeatSources() {
+  let rows = [];
+  try { rows = await api('/log'); } catch {}
+  const runs = {};
+  for (const r of rows) {
+    if (!r.run_id || !('gold_pages' in r)) continue;   // evaluation runs only
+    (runs[r.run_id] = runs[r.run_id] || {})[r.phase] = r;
+  }
+  state.logRuns = Object.entries(runs).map(([rid, ph]) => ({ run_id: rid, ...ph }));
+  const sel = $('heatSource');
+  const opts = [];
+  if (state.lastEvidence) opts.push(`<option value="__last__">Last query (interactive)</option>`);
+  for (const run of state.logRuns.slice(-60).reverse()) {
+    const base = run.vector || run.reasoning || {};
+    opts.push(`<option value="${esc(run.run_id)}">${esc(base.question_id || run.run_id)}${base.repeat_index ? ' · r' + base.repeat_index : ''}${base.profile ? ' · ' + base.profile : ''}</option>`);
+  }
+  sel.innerHTML = opts.join('') || `<option value="">— no runs —</option>`;
+}
+
+function renderHeatFromSelection() {
+  const v = $('heatSource').value;
+  if (v === '__last__' && state.lastEvidence) {
+    const gold = goldForQuestion(state.lastQuestion);
+    state._heatTitle = 'Q: ' + (state.lastQuestion || '');
+    renderHeatmap({
+      title: state._heatTitle,
+      retrieved: state.lastEvidence.A && state.lastEvidence.A.retrieved,
+      read: state.lastEvidence.B && state.lastEvidence.B.read,
+      searched: state.lastEvidence.B && state.lastEvidence.B.searched,
+      gold: gold,
+    });
+  } else {
+    const run = state.logRuns.find(r => r.run_id === v);
+    if (!run) return;
+    const A = run.vector && run.vector.evidence, B = run.reasoning && run.reasoning.evidence;
+    const base = run.vector || run.reasoning || {};
+    state._heatTitle = (base.question || base.question_id || v);
+    renderHeatmap({
+      title: state._heatTitle,
+      retrieved: A && A.retrieved, read: B && B.read, searched: B && B.searched,
+      gold: base.gold_pages,
+    });
+  }
+}
+$('heatSource').addEventListener('change', renderHeatFromSelection);
+
+/* ---------- metrics dashboard ---------- */
+const mMean = (st, opts = {}) => {
+  if (!st || st.mean == null) return '<span class="sub">—</span>';
+  const { pct, dp = 2, suffix = '' } = opts;
+  const v = pct ? (st.mean * 100).toFixed(0) + '%' : st.mean.toFixed(dp) + suffix;
+  const sd = (st.std != null && st.std > 0 && st.n > 1)
+    ? ` <span class="std">±${pct ? (st.std * 100).toFixed(0) : st.std.toFixed(dp)}</span>` : '';
+  return v + sd;
+};
+const mInt = st => (!st || st.mean == null) ? '<span class="sub">—</span>'
+  : `${Math.round(st.mean).toLocaleString('en-US')}` + (st.std > 0 && st.n > 1 ? ` <span class="std">±${Math.round(st.std)}</span>` : '');
+const mSec = st => (!st || st.mean == null) ? '<span class="sub">—</span>' : (st.mean / 1000).toFixed(1) + 's';
+
+// mean pair with the higher value highlighted as the winner (higher = better)
+function winPair(A, B, opts) {
+  let a = mMean(A, opts), b = mMean(B, opts);
+  if (A && B && A.mean != null && B.mean != null && A.mean !== B.mean) {
+    if (A.mean > B.mean) a = `<span class="win">${a}</span>`;
+    else b = `<span class="win">${b}</span>`;
+  }
+  return `<td class="col-a">${a}</td><td class="col-b">${b}</td>`;
+}
+
+function metricRow(label, blk, showCost, typeKey) {
+  const A = blk.A, B = blk.B, pct = { pct: true };
+  const cost = showCost ? `<td class="col-a">${mMean(A.cost, { dp: 4, suffix: '$' })}</td><td class="col-b">${mMean(B.cost, { dp: 4, suffix: '$' })}</td>` : '';
+  // the count opens a per-question drill-down for this question-type (or all)
+  const nCell = blk.n
+    ? `<td class="ncell" data-type="${esc(typeKey)}" title="click for the ${blk.n} question(s) behind this row">${blk.n}</td>`
+    : `<td>${blk.n}</td>`;
+  return `<td>${label}</td>${nCell}
+    ${winPair(A.recall, B.recall, pct)}
+    ${winPair(A.precision, B.precision, pct)}
+    ${winPair(A.f1, B.f1, pct)}
+    <td class="col-a">${mMean(A.mrr, { dp: 2 })}</td><td class="col-b">${mMean(B.reads_to_gold, { dp: 1 })}</td>
+    <td>${mMean(blk.overlap, { dp: 2 })}</td>
+    <td class="col-a">${mSec(A.latency_ms)}</td><td class="col-b">${mSec(B.latency_ms)}</td>
+    <td class="col-a">${mInt(A.tokens)}</td><td class="col-b">${mInt(B.tokens)}</td>${cost}`;
+}
+
+function renderMetrics(m) {
+  state.metricsSummary = m;   // cached so the drill-down totals match this table exactly
+  const jw = m.overall.judge;
+  const jStr = (jw && jw.n)
+    ? `<span>Judge <b class="win-a">A ${(jw.A_win * 100).toFixed(0)}%</b> · <b class="win-b">B ${(jw.B_win * 100).toFixed(0)}%</b> · tie ${(jw.tie * 100).toFixed(0)}% <span class="std">(n=${jw.n})</span></span>`
+    : '';
+  const pctOrDash = st => (!st || st.mean == null) ? '—' : (st.mean * 100).toFixed(0) + '%';
+  $('metricsSummary').innerHTML =
+    `<span>Runs <b>${m.n_runs}</b></span><span>Questions <b>${m.n_questions}</b></span>`
+    + `<span>Unanswerable <b>${m.n_unanswerable}</b></span>`
+    + `<span title="retrieval F1 over gold pages">A F1 <b>${pctOrDash(m.overall.A.f1)}</b></span>`
+    + `<span title="retrieval F1 over gold pages">B F1 <b>${pctOrDash(m.overall.B.f1)}</b></span>`
+    + jStr;
+
+  if (!m.n_runs) {
+    $('metricsTableWrap').innerHTML = `<p class="empty">No runs logged yet.</p>`;
+    $('costNote').textContent = '';
+    return;
+  }
+  const showCost = m.cost_model.in > 0 || m.cost_model.out > 0;
+  const head = `<tr>
+    <th rowspan="2">Type</th><th rowspan="2">n</th>
+    <th colspan="2" title="Page-level recall of gold pages using top-k retrieval (Recall@k / Context Recall). Chunks are deduped to pages.">Recall@k</th>
+    <th colspan="2" title="Page-level precision (Precision@k / Context Precision): gold pages ÷ UNIQUE retrieved pages — denominator is pages, not k.">Precision@k</th>
+    <th colspan="2" title="Retrieval F1 = 2·P·R/(P+R), page-level, macro-averaged over queries.">F1</th>
+    <th>MRR</th><th>reads→gold</th><th rowspan="2">Overlap</th>
+    <th colspan="2">Latency</th><th colspan="2">Tokens</th>${showCost ? '<th colspan="2">Cost</th>' : ''}
+  </tr><tr>
+    <th class="col-a">A</th><th class="col-b">B</th>
+    <th class="col-a">A</th><th class="col-b">B</th>
+    <th class="col-a">A</th><th class="col-b">B</th>
+    <th class="col-a">A</th><th class="col-b">B</th>
+    <th class="col-a">A</th><th class="col-b">B</th>
+    <th class="col-a">A</th><th class="col-b">B</th>${showCost ? '<th class="col-a">A</th><th class="col-b">B</th>' : ''}
+  </tr>`;
+  const typeRows = m.per_type.map(t =>
+    `<tr><td class="mtype">${esc(t.type)}</td>` + metricRow('', t, showCost, t.type).replace(/^<td><\/td>/, '') + `</tr>`
+  ).join('');
+  const overall = `<tr class="overall">` + metricRow('overall', m.overall, showCost, '__all__') + `</tr>`;
+  $('metricsTableWrap').innerHTML =
+    `<div class="mtable-wrap"><table class="mtable"><thead>${head}</thead><tbody>${typeRows}${overall}</tbody></table></div>`;
+  $('metricsTableWrap').querySelectorAll('td.ncell').forEach(td =>
+    td.addEventListener('click', () => openTypeDetail(td.dataset.type)));
+  const metricsLegend = 'Recall@k / Precision@k / F1 are <b>page-level</b> against '
+    + '<span class="mono">gold_pages</span>: retrieved chunks are collapsed to unique '
+    + 'pages, so precision\'s denominator is distinct retrieved pages, not k '
+    + '(= context recall/precision; B has no fixed k). F1 = 2·P·R/(P+R), '
+    + 'macro-averaged over queries. MRR is A\'s ranked retrieval; reads→gold is B\'s '
+    + '1-based read position of the first gold page; Overlap = Jaccard(A retrieved, B read). '
+    + 'Unanswerable controls (no gold) are excluded from these means.';
+  $('costNote').innerHTML = showCost
+    ? `Cost model: $${m.cost_model.in}/1M in · $${m.cost_model.out}/1M out. ${metricsLegend}`
+    : `Cost columns hidden — set <span class="mono">COST_PER_1M_IN</span>/<span class="mono">COST_PER_1M_OUT</span> in .env. ${metricsLegend}`;
+}
+
+async function loadMetrics() {
+  try {
+    const m = await api('/metrics');
+    renderMetrics(m);
+    try { state.metricsDetail = (await api('/metrics/detail')).runs; } catch { state.metricsDetail = []; }
+  } catch {}
+}
+
+/* ---------- per-question drill-down popup ---------- */
+const _mAvg = (arr, sys, f) => {
+  const xs = arr.map(r => r[sys] && r[sys][f]).filter(v => typeof v === 'number');
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+};
+const _pctCell = v => v == null ? '<span class="sub">—</span>' : (v * 100).toFixed(0) + '%';
+const _numCell = (v, dp) => v == null ? '<span class="sub">—</span>' : v.toFixed(dp);
+
+function openTypeDetail(typeKey) {
+  const all = state.metricsDetail || [];
+  const rows = typeKey === '__all__' ? all : all.filter(r => r.question_type === typeKey);
+  if (!rows.length) return;
+
+  // group the runs of this type by question, averaging over repeats
+  const byQ = {};
+  for (const r of rows) {
+    const q = (byQ[r.question_id] = byQ[r.question_id] || {
+      id: r.question_id, question: r.question, content_type: r.content_type,
+      gold: r.gold_pages, runs: [], judges: [] });
+    q.runs.push(r);
+    if (r.judge) q.judges.push(r.judge);
+  }
+  const questions = Object.values(byQ);
+  const repeats = Math.max(...questions.map(q => q.runs.length));
+  state._mDetailType = typeKey;
+
+  const showJudge = rows.some(r => r.judge);
+  // headers mirror the main dashboard exactly: grouped Recall@k / Precision@k / F1
+  // with A|B sub-columns, then MRR (A) and reads→gold (B)
+  const head = `<thead>
+    <tr>
+      <th rowspan="2">Question</th><th rowspan="2">content</th><th rowspan="2">gold</th>
+      <th colspan="2" title="Page-level recall of gold pages (Recall@k / Context Recall)">Recall@k</th>
+      <th colspan="2" title="Page-level precision (Precision@k / Context Precision)">Precision@k</th>
+      <th colspan="2" title="Retrieval F1 = 2·P·R/(P+R)">F1</th>
+      <th>MRR</th><th>reads→gold</th>${showJudge ? '<th rowspan="2">judge</th>' : ''}
+    </tr>
+    <tr>
+      <th class="col-a">A</th><th class="col-b">B</th>
+      <th class="col-a">A</th><th class="col-b">B</th>
+      <th class="col-a">A</th><th class="col-b">B</th>
+      <th class="col-a">A</th><th class="col-b">B</th>
+    </tr>
+  </thead>`;
+
+  const body = questions.map(q => {
+    const ct = q.content_type ? `<span class="badge-ct ${esc(q.content_type)}">${esc(q.content_type)}</span>` : '';
+    const goldN = Object.values(q.gold || {}).reduce((a, p) => a + p.length, 0);
+    const jw = { '1': 0, '2': 0, tie: 0 };          // 1=A, 2=B in the log
+    q.judges.forEach(w => { if (w in jw) jw[w]++; });
+    const judge = showJudge
+      ? (q.judges.length ? `A${jw['1']}·B${jw['2']}·t${jw['tie']}` : '<span class="sub">—</span>') : '';
+    return `<tr>
+      <td class="qcell"><span class="qid">${esc(q.id)}</span>${esc(q.question || '')}</td>
+      <td>${ct}</td><td>${goldN || '<span class="sub">0</span>'}</td>
+      <td class="col-a">${_pctCell(_mAvg(q.runs, 'A', 'recall'))}</td>
+      <td class="col-b">${_pctCell(_mAvg(q.runs, 'B', 'recall'))}</td>
+      <td class="col-a">${_pctCell(_mAvg(q.runs, 'A', 'precision'))}</td>
+      <td class="col-b">${_pctCell(_mAvg(q.runs, 'B', 'precision'))}</td>
+      <td class="col-a">${_pctCell(_mAvg(q.runs, 'A', 'f1'))}</td>
+      <td class="col-b">${_pctCell(_mAvg(q.runs, 'B', 'f1'))}</td>
+      <td class="col-a">${_numCell(_mAvg(q.runs, 'A', 'mrr'), 2)}</td>
+      <td class="col-b">${_numCell(_mAvg(q.runs, 'B', 'reads_to_gold'), 1)}</td>
+      ${showJudge ? `<td>${judge}</td>` : ''}</tr>`;
+  }).join('');
+
+  // totals row — taken straight from the /metrics aggregate so it is IDENTICAL
+  // to this type's row in the main dashboard (mean ± sd, macro over runs)
+  const sm = state.metricsSummary;
+  const blk = typeKey === '__all__' ? (sm && sm.overall)
+    : (sm && (sm.per_type || []).find(t => t.type === typeKey));
+  const pct = { pct: true };
+  let totals = '';
+  if (blk) {
+    const jb = blk.judge;
+    const jCell = showJudge
+      ? (jb && jb.n ? `A${(jb.A_win * 100).toFixed(0)}·B${(jb.B_win * 100).toFixed(0)}·t${(jb.tie * 100).toFixed(0)}` : '<span class="sub">—</span>')
+      : '';
+    totals = `<tr class="overall">
+      <td class="qcell"><b>Total</b> <span class="sub">mean ± sd</span></td>
+      <td></td><td>${blk.n}</td>
+      ${winPair(blk.A.recall, blk.B.recall, pct)}
+      ${winPair(blk.A.precision, blk.B.precision, pct)}
+      ${winPair(blk.A.f1, blk.B.f1, pct)}
+      <td class="col-a">${mMean(blk.A.mrr, { dp: 2 })}</td>
+      <td class="col-b">${mMean(blk.B.reads_to_gold, { dp: 1 })}</td>
+      ${showJudge ? `<td>${jCell}</td>` : ''}</tr>`;
+  }
+
+  $('mDetailTitle').textContent =
+    `${typeKey === '__all__' ? 'All questions' : typeKey} — ${questions.length} question(s)`
+    + (repeats > 1 ? ` · mean of ${repeats} repeats` : '');
+  $('mDetailBody').innerHTML =
+    `<div class="mtable-wrap"><table class="mtable">${head}<tbody>${body}${totals}</tbody></table></div>`;
+  $('mDetail').hidden = false; $('mDetailScrim').hidden = false;
+}
+
+function closeMDetail() { $('mDetail').hidden = true; $('mDetailScrim').hidden = true; }
+$('mDetailClose').addEventListener('click', closeMDetail);
+$('mDetailScrim').addEventListener('click', closeMDetail);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mDetail').hidden) closeMDetail(); });
+
+$('refreshMetrics').addEventListener('click', loadMetrics);
+$('dlMetrics').addEventListener('click', () => { window.location = '/metrics.xlsx'; });
+$('clearMetrics').addEventListener('click', async () => {
+  if (!confirm('Reset the metrics dashboard?\n\nThe current experiment log is archived to a timestamped .bak file (nothing is deleted), then the dashboard starts empty. Do this before running your real question set.')) return;
+  const btn = $('clearMetrics'); btn.disabled = true; btn.textContent = 'Clearing…';
+  try {
+    const r = await api('/log/clear', { method: 'POST' });
+    // reset both views: the server-backed dashboard and this session's run table
+    state.runs = [];
+    state.logRuns = [];
+    $('logTableWrap').innerHTML = `<p class="empty">Log cleared${r.archived ? ` — ${r.rows} run(s) archived to <span class="mono">${esc(r.archived)}</span>` : ''}. New runs will appear here.</p>`;
+    await loadMetrics();
+    if (typeof loadHeatSources === 'function') loadHeatSources();
+  } catch (err) {
+    alert('Could not clear the log: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Clear log';
+  }
+});
+
+/* ---------- orchestration: sequential A -> B ---------- */
+$('askBtn').addEventListener('click', async () => {
+  const question = $('question').value.trim();
+  if (!question || state.running) return;
+  state.running = true;
+  refreshReadiness();
+  $('askBtn').disabled = true;
+
+  railSet('railA', null); railSet('railB', null);
+  $('bodyA').innerHTML = ''; $('bodyB').innerHTML = '';
+  $('citeWrapA').hidden = true; $('citesA').innerHTML = '';
+  $('traceWrap').hidden = true; $('traceB').innerHTML = '';
+  $('metA').textContent = '⏱ — · ⇢ — in · ⇠ — out · — call';
+  $('metB').textContent = '⏱ — · ⇢ — in · ⇠ — out · — calls · — tools';
+
+  const runId = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now());
+  state.lastRunId = runId;
+  $('judgeBtn').disabled = true;
+  $('verdict').textContent = '';
+  const entry = { question, A: { error: null }, B: { error: null } };
+
+  /* ---- PHASE 1: Vector ---- */
+  setLamp('busy', 'A running…');
+  railSet('railA', 'running'); $('stateA').textContent = 'running…';
+  try {
+    const rA = await api('/ask/vector', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, top_k: parseInt($('topK').value) || 5, run_id: runId }),
+    });
+    renderAnswer($('bodyA'), rA.answer);
+    attachCitClicks($('bodyA'), rA.retrieved);
+    renderCitesA(rA.retrieved);
+    metA(rA);
+    railSet('railA', 'done'); $('stateA').textContent = 'done';
+    entry.A = rA; state.lastA = rA;
+  } catch (err) {
+    renderError($('bodyA'), err);
+    railSet('railA', 'err'); $('stateA').textContent = 'error';
+    entry.A = { error: err.message, latency_ms: 0, usage: { in: 0, out: 0 } };
+  }
+
+  /* ---- PHASE 2: Reasoning — fresh start, no access to phase 1 ---- */
+  const live = $('liveTrace').checked;
+  setLamp('busy', 'B reasoning…');
+  railSet('railB', 'running');
+  $('stateB').textContent = live ? 'reasoning… (live)' : 'reasoning… (trace appears when done)';
+  try {
+    const rB = live
+      ? await askReasoningStream(question, runId)
+      : await api('/ask/reasoning', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ question, max_steps: parseInt($('maxSteps').value) || 8, run_id: runId }),
+        });
+    renderAnswerB($('bodyB'), rB.answer);
+    renderTrace(rB.trace);
+    metB(rB);
+    railSet('railB', 'done'); $('stateB').textContent = rB.hit_limit ? 'done (step limit hit)' : 'done';
+    entry.B = rB; state.lastB = rB;
+  } catch (err) {
+    renderError($('bodyB'), err);
+    railSet('railB', 'err'); $('stateB').textContent = 'error';
+    entry.B = { error: err.message, latency_ms: 0, usage: { in: 0, out: 0 }, calls: 0 };
+  }
+
+  pushRun(entry);
+  state.lastEvidence = { A: entry.A.evidence || null, B: entry.B.evidence || null };
+  state.lastQuestion = question;
+  $('qFillA').disabled = !(state.lastEvidence.A && state.lastEvidence.A.retrieved);
+  $('qFillB').disabled = !(state.lastEvidence.B && state.lastEvidence.B.read);
+  await loadHeatSources();
+  $('heatSource').value = '__last__';
+  renderHeatFromSelection();
+  $('judgeBtn').disabled = !(entry.A && !entry.A.error && entry.B && !entry.B.error);
+  $('exportCase').disabled = !(entry.A || entry.B);
+  state.lastVerdict = null;
+  state.running = false;
+  refreshReadiness();
+});
+
+/* ---------- LLM judge (interactive) ---------- */
+function renderVerdict(v) {
+  const cls = v.winner === 'A' ? 'win-a' : v.winner === 'B' ? 'win-b' : 'win-tie';
+  const label = v.winner === 'tie' ? 'Tie' : `${v.winner} wins`;
+  const sc = v.scores || {};
+  const scLine = ['A', 'B'].filter(k => sc[k]).map(k =>
+    `${k}(g${sc[k].grounded}/c${sc[k].complete}/p${sc[k].correct})`).join(' ');
+  $('verdict').innerHTML =
+    `<span class="${cls}">${label}</span> `
+    + (v.rationale ? `<span class="why">“${esc(v.rationale)}”</span> ` : '')
+    + `<span class="jmeta">${scLine ? scLine + ' · ' : ''}judge ${esc(v.judge_model)} (${esc(v.judge_provider)}) · blind, Answer ${v.a_was_answer}=A</span>`;
+}
+
+$('judgeBtn').addEventListener('click', async () => {
+  if (!state.lastRunId) return;
+  $('judgeBtn').disabled = true;
+  $('verdict').innerHTML = '<span class="jmeta">judging…</span>';
+  try {
+    const v = await api('/judge', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ run_id: state.lastRunId }),
+    });
+    state.lastVerdict = v;
+    renderVerdict(v);
+    if (typeof loadMetrics === 'function') loadMetrics();
+  } catch (err) {
+    $('verdict').innerHTML = `<span class="jmeta" style="color:var(--err)">${esc(err.message)}</span>`;
+  }
+  $('judgeBtn').disabled = false;
+});
+
+/* ---------- case report export (self-contained HTML) ---------- */
+function pagesLine(map) {
+  return Object.entries(map || {}).map(([d, p]) => `${esc(d)} p.${p.join(',')}`).join(' · ') || '—';
+}
+function traceHTML(trace) {
+  return (trace || []).map(t => {
+    if (t.t === 'tool') return `<li><b>${esc(t.name)}</b> <code>${esc(JSON.stringify(t.input))}</code></li>`;
+    if (t.t === 'obs') return `<li class="obs">→ ${esc(t.preview)}…</li>`;
+    return `<li class="th">${esc(t.text)}</li>`;
+  }).join('');
+}
+function buildCaseReport() {
+  const q = state.lastQuestion || '', A = state.lastA, B = state.lastB, v = state.lastVerdict;
+  const s = (state.status && state.status.settings) || {};
+  const gold = goldForQuestion(q);
+  const heat = buildExportSVG('Evidence heatmap — ' + q) || '';
+  const cfg = `model ${esc(s.model || '?')} · seed ${s.seed == null ? 'off' : s.seed} · top-k ${s.top_k} · max-steps ${s.max_steps} · chunk ${s.chunk_size}/${s.chunk_overlap} · emb ${esc((s.embedding_model || '').split('/').pop())}`;
+  const aBlock = A && !A.error ? `
+    <div class="ans">${linkifyNo(A.answer)}</div>
+    <div class="meta">retrieved pages: ${pagesLine(A.evidence && A.evidence.retrieved)} · ${(A.latency_ms / 1000).toFixed(1)}s · ${A.usage.in + A.usage.out} tokens · top-k ${A.top_k}</div>
+    <details><summary>Retrieved passages</summary><ol>${(A.retrieved || []).map(h => `<li><small>${esc(h.doc)} · p.${h.page} · #${h.chunk} · sim ${h.score.toFixed(3)}</small><br>${esc(h.snippet)}…</li>`).join('')}</ol></details>`
+    : `<div class="err">${esc((A && A.error) || 'not run')}</div>`;
+  const bBlock = B && !B.error ? `
+    <div class="ans">${linkifyNo(B.answer)}</div>
+    <div class="meta">read pages: ${pagesLine(B.evidence && B.evidence.read)} · searched: ${pagesLine(B.evidence && B.evidence.searched)} · ${(B.latency_ms / 1000).toFixed(1)}s · ${B.usage.in + B.usage.out} tokens · ${B.calls} calls / ${B.tool_calls} tools${B.hit_limit ? ' · step limit hit' : ''}</div>
+    <details open><summary>Reasoning trace</summary><ol class="trace">${traceHTML(B.trace)}</ol></details>`
+    : `<div class="err">${esc((B && B.error) || 'not run')}</div>`;
+  const verdictBlock = v ? `<section><h2>Blind judge verdict</h2>
+    <p><b>${v.winner === 'tie' ? 'Tie' : v.winner + ' wins'}</b> — ${esc(v.rationale || '')}<br>
+    <small>judge ${esc(v.judge_model)} (${esc(v.judge_provider)}), blind randomized order (Answer ${v.a_was_answer} = A)</small></p></section>` : '';
+  const goldBlock = gold && goldCount(gold) ? `<p><b>Gold pages:</b> ${pagesLine(gold)}</p>` : '';
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Case report — ${esc(q).slice(0, 60)}</title>
+<style>
+  body{font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#17201B;max-width:900px;margin:24px auto;padding:0 18px}
+  h1{font-size:20px} h2{font-size:15px;border-bottom:2px solid #eee;padding-bottom:4px;margin-top:26px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .col{border:1px solid #e2e6e2;border-radius:8px;padding:12px}
+  .col.a{border-top:3px solid #2352C9} .col.b{border-top:3px solid #1A6B4A}
+  .ans{white-space:pre-wrap} .meta{color:#5F6B63;font-size:12px;margin-top:8px;font-family:monospace}
+  .err{color:#A3261C} code{background:#f0f2ef;padding:1px 4px;border-radius:3px;font-size:12px}
+  .trace li{font-size:12px;margin:2px 0} .trace .th{color:#5F6B63;font-style:italic} .trace .obs{color:#5F6B63}
+  details{margin-top:8px} summary{cursor:pointer;color:#5F6B63;font-size:12px} small{color:#5F6B63}
+  .cfg{background:#F7F8F6;border-radius:6px;padding:8px 10px;font-family:monospace;font-size:11.5px;color:#5F6B63}
+  svg{max-width:100%;height:auto;border:1px solid #eee;border-radius:6px}
+  @media print{.col{break-inside:avoid}}
+</style></head><body>
+  <h1>RetrievalLab — case report</h1>
+  <p class="cfg">${cfg}<br>generated ${new Date().toISOString()}</p>
+  <h2>Question</h2><p>${esc(q)}</p>${goldBlock}
+  <h2>Answers</h2>
+  <div class="cols"><div class="col a"><h3>A · Vector RAG</h3>${aBlock}</div>
+    <div class="col b"><h3>B · Reasoning-Based</h3>${bBlock}</div></div>
+  ${verdictBlock}
+  <h2>Evidence heatmap</h2>${heat}
+  <p style="color:#5F6B63;font-size:11px;margin-top:24px">Lane A = pages retrieved (vector) · lane B = pages read (reasoning) · ◇ gold. Generated by RetrievalLab v2.</p>
+</body></html>`;
+}
+// citations aren't clickable in the exported file -> render as plain text
+function linkifyNo(text) { return mdLite(text); }
+
+$('exportCase').addEventListener('click', () => {
+  const html = buildCaseReport();
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const slug = (state.lastQuestion || 'case').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+  a.download = `case_report_${slug}.html`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+$('question').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') $('askBtn').click();
+});
+
+refreshStatus().then(loadTreeAudit);
+loadQuestions();
+loadProfiles();
+loadMetrics();
+loadHeatSources();
+setInterval(() => { if (!state.running && !state.batchRunning) refreshStatus(); }, 15000);
+</script>
+</body>
+</html>
