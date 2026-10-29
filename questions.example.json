@@ -1,33 +1,51 @@
 {
   "questions": [
     {
-      "id": "coating-thickness",
-      "question": "What is the minimum required coating thickness for the metal facing?",
-      "question_de": "Wie groß ist die geforderte Mindestbeschichtungsdicke der metallischen Deckschicht?",
+      "id": "hole-clearance-m20",
+      "question": "What nominal hole clearance applies to a normal round hole for an M20 bolt?",
       "type": "numeric",
-      "gold_pages": { "EN 14509.pdf": [42, 43] },
-      "notes": "Single-fact numeric lookup; answer lives in one clause."
+      "gold_pages": {
+        "DIN_EN_1090-2_2024-09-00_DE_3537520.pdf": [
+          50
+        ]
+      },
+      "notes": "answer: 2 mm. | source: Tabelle 11 | content: table",
+      "content_type": "table"
     },
     {
-      "id": "shear-test-method",
-      "question": "Which test method is specified for determining the shear strength of the core?",
+      "id": "sandwich-lamella",
+      "question": "What does EN 14509 call a lamella core and how is it produced?",
       "type": "definition",
-      "gold_pages": { "EN 14509.pdf": [88] },
-      "notes": "Clause reference question — good for find_clause (Step 9)."
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          14
+        ]
+      },
+      "notes": "",
+      "content_type": "prose"
     },
     {
-      "id": "compare-fire-classes",
-      "question": "How do the two standards differ in how they classify reaction-to-fire performance?",
+      "id": "xdoc-fire-classification-two-products",
+      "question": "Sandwich panels and structural steel components both declare fire performance. Which classification standard does each product standard reference?",
       "type": "cross-document",
-      "gold_pages": { "EN 14509.pdf": [51, 52], "DIN 4102.pdf": [10, 11] },
-      "notes": "Multi-hop across two documents; both gold sets must be hit for full recall."
+      "gold_pages": {
+        "DIN_EN_14509_2013-12-00_DE_2065055.pdf": [
+          12
+        ],
+        "DIN_EN_1090-1_2012-02-00_DE_1855463.pdf": [
+          13
+        ]
+      },
+      "notes": "",
+      "content_type": "prose"
     },
     {
-      "id": "no-answer-control",
-      "question": "What is the warranty period offered by the panel manufacturer?",
+      "id": "un-galv-bath-temperature",
+      "question": "In what temperature range must the zinc melt be held during hot-dip galvanizing?",
       "type": "unanswerable",
       "gold_pages": {},
-      "notes": "Control: not in the sources. Correct behaviour is an explicit 'not found'."
+      "notes": "",
+      "content_type": "prose"
     }
   ]
 }
